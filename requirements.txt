@@ -1,0 +1,32 @@
+# KnowForge项目依赖文件
+
+# 基础依赖
+python-dotenv>=1.0.0
+pyyaml>=6.0
+typer>=0.9.0
+colorama>=0.4.6  # 增强CLI颜色支持
+
+# 输入处理
+pdfplumber>=0.10.0
+easyocr>=1.7.0
+requests>=2.31.0
+beautifulsoup4>=4.12.0
+pygments>=2.16.0
+
+# 向量化和记忆
+sentence-transformers>=2.3.0
+chromadb>=0.4.0
+
+# LLM接口
+openai>=1.0.0
+
+# 输出生成
+markdown-it-py>=3.0.0
+nbformat>=5.9.0
+weasyprint>=60.0
+jupytext>=1.15.0  # Markdown与Notebook转换
+
+# 测试工具
+pytest>=7.4.0
+pytest-cov>=4.1.0
+pytest-mock>=3.11.0

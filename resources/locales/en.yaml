@@ -1,0 +1,229 @@
+# KnowForge English Language Resource File
+en:
+  system:
+    start_message: "KnowForge program started"
+    startup: "KnowForge v{version} started"
+    shutdown_message: "KnowForge program closed"
+    error_occurred: "An error occurred. Please check the logs for details."
+    unexpected_error: "Unexpected error occurred. Logged for review."
+    processing: "Processing..."
+    completed: "Completed"
+    reading_input: "Will read input from {input_dir}"
+    generating_format: "Will generate notes in {formats} format"
+    no_input_files: "No processable input files found"
+    generated_notes: "Generated note files:"
+    format_output: "- {format}: {path}"
+    error_prefix: "Error occurred: {error}"
+    
+  input:
+    scanning: "Scanning input files..."
+    processing_pdf: "Processing PDF file: {filename}"
+    processing_image: "Processing image file: {filename}"
+    processing_code: "Processing code file: {filename}"
+    processing_link: "Processing link: {url}"
+    processing_file: "Processing file: {filename}"
+    invalid_input: "Invalid input: {input}"
+    invalid_file: "Invalid file: {filename}"
+    no_input_found: "No valid input files found"
+    file_too_large: "File exceeds size limit: {file_path} ({size:.2f}MB > {max_size}MB)"
+    unsupported_format: "Unsupported file format: {file_path} ({extension})"
+    file_not_exist: "File does not exist: {filename}"
+    extract_success_pdf: "Successfully extracted {char_count} characters from PDF"
+    extract_fail_pdf: "Failed to process PDF file {filename}: {error}"
+    extract_success_webpage: "Successfully extracted {char_count} characters from webpage"
+    extract_fail_webpage: "Failed to process webpage link {url}: {error}"
+    read_file_fail: "Failed to read file {filename}: {error}"
+    ocr_not_implemented: "OCR feature not yet implemented, cannot process images"
+    unknown_title: "Unknown Title"
+    file_size_exceeded: "File exceeds size limit: {filename} ({actual_size:.2f}MB > {max_size}MB)"
+    unsupported_file_format: "Unsupported file format: {filename} ({format})"
+    unsupported_file_type: "Unsupported file type: {file_type}"
+    save_preprocessed_fail: "Failed to save preprocessed text: {error}"
+    handler_initialized: "InputHandler initialized: {input_dir}"
+    scan_result: "Scanned input files: PDF={pdf_count}, Images={image_count}, Code={code_count}, Links={link_count}"
+    extracted_segments: "Extracted {count} text segments in total"
+    process_code_fail: "Failed to process code file: {filename}, error: {error}"
+    read_link_fail: "Failed to read link file: {filename}, error: {error}"
+    
+  splitter:
+    splitting_text: "Splitting text..."
+    splitting_completed: "Text splitting completed, {count} segments in total"
+    split_by_chapter_success: "Successfully split by chapter structure, got {count} chapters"
+    split_by_paragraph_success: "Successfully split by paragraphs, got {count} paragraphs"
+    fallback_to_hard_split: "Cannot split by structure, will use hard splitting"
+    initialized: "Splitter initialized: chunk_size={chunk_size}, overlap_size={overlap_size}"
+    llm_enabled: "LLM-assisted splitting enabled (provider: {provider})"
+    llm_disabled: "LLM-assisted splitting disabled, using rule-based splitting"
+    attempt_llm_splitting: "Attempting to use LLM for text splitting..."
+    llm_success: "LLM successfully split text into {count} sections"
+    llm_failed: "LLM failed to split text, trying alternative methods"
+    llm_error: "LLM splitting failed: {error}, trying backup methods"
+    using_paragraph_backup: "Using paragraph-based backup splitting method"
+    paragraph_success: "Using paragraph splitting method, text split into {count} segments"
+    hard_split_fallback: "All smart splitting methods failed, performing simple hard split"
+    insufficient_headers: "Not enough headers detected (found {found}, need at least {required})"
+    no_pattern_detected: "No reliable section pattern detected"
+    markdown_headers_split: "Split into {count} sections using Markdown headers"
+    chinese_headers_split: "Split into {count} sections using Chinese chapter format"
+    english_headers_split: "Split into {count} sections using English chapter format"
+    markdown_regex_split: "Split into {count} sections using Markdown regex"
+    chinese_regex_split: "Split into {count} sections using Chinese chapter regex"
+    english_regex_split: "Split into {count} sections using English chapter regex"
+    regex_split_error: "Regex splitting failed: {error}"
+    no_llm_api_key: "LLM splitting requires an API key configuration"
+    unsupported_llm_provider: "Unsupported LLM provider: {provider}"
+    call_llm_analyze: "Calling LLM to analyze document structure..."
+    using_model: "Using model: {model}"
+    llm_analysis_result: "LLM analysis result: {result}..."
+    extracted_regex_patterns: "Extracted {count} regex patterns from LLM analysis"
+    regex_matches: "Regex '{pattern}' found {count} matches"
+    regex_split_success: "Regex '{pattern}' successfully split text into {count} sections"
+    invalid_regex: "LLM suggested regex '{pattern}' is invalid: {error}"
+    llm_split_success: "LLM successfully split text using pattern: {pattern}"
+    try_direct_split_points: "Regex splitting failed, trying to get direct split points from LLM..."
+    llm_split_suggestions: "LLM split point suggestions: {suggestions}"
+    llm_provided_split_points: "LLM provided {count} split points"
+    llm_split_points_success: "Successfully split into {count} sections using LLM-provided split points"
+    parse_split_points_failed: "Failed to parse LLM-provided split points: {error}"
+    llm_fallback_rule_based: "LLM analysis failed to produce valid split, falling back to rule-based splitting"
+    openai_import_error: "Using OpenAI SDK requires installing the openai package: pip install openai"
+    deepseek_api_error: "DeepSeek API call failed: {error}"
+    standard_patterns_success: "Successfully split text using standard patterns into {count} segments"
+    llm_system_prompt: "You are a professional document structure analysis expert who excels at identifying document section structures and title patterns."
+    direct_split_system_prompt: "You are a professional document structure analysis assistant."
+    llm_prompt_template: |
+      Please act as a professional document structure analyst to analyze the chapter structure of the following text.
+      
+      Here's a sample of the text:
+      ```
+      {sample_text}
+      ```
+      
+      Based on preliminary analysis, we've identified some potential titles or section break points:
+      {sample_headers}
+      
+      Please perform the following tasks:
+      1. Analyze the overall structure of the document, identify patterns of all chapter titles, section titles or other content break points
+      2. Determine which are main chapter titles and which are secondary titles
+      3. Provide a regular expression pattern to accurately match these main chapter titles
+      4. Judge the hierarchy of these titles and explain the general structure of the document
+      
+      Your answer should include:
+      1. A brief description of the document structure
+      2. Patterns and examples of main chapter titles
+      3. One or more regular expressions that can be used to split the document, enclosed in a ```regex``` code block
+      4. Recommended splitting strategy: which level of titles is most reasonable to split by
+      
+      Please ensure your regular expression can accurately match chapter titles in the document without mistakenly matching body content.
+    direct_split_prompt_template: |
+      I need your help determining how to split the following text into separate chapters.
+
+      Text sample:
+      ```
+      {sample_text}
+      ```
+
+      Please provide line numbers (0-based index) for all text lines in the document that you think should be split points.
+      The answer format should be a simple list of numbers, for example:
+      ```
+      0
+      15
+      42
+      87
+      ```
+
+      Each number represents the start of a new chapter. Make sure to always include the first line (line 0).
+    
+  memory:
+    storing: "Storing vectors to memory..."
+    retrieving: "Retrieving relevant memories..."
+    rebuilding: "Rebuilding memory store..."
+    
+  llm:
+    calling_api: "Calling AI model..."
+    api_error: "API call error: {message}"
+    rate_limit: "API rate limit reached, waiting to retry..."
+    
+  processor:
+    initialized: "Processor initialized successfully"
+    init_failed: "Processor initialization failed: {error}"
+    config_loaded: "Configuration loaded: {path}"
+    pipeline_start: "Starting complete processing pipeline"
+    pipeline_completed: "Processing pipeline completed in {elapsed:.2f} seconds"
+    pipeline_failed: "Processing pipeline failed: {error}"
+    note_generation_failed: "Note generation failed: {error}"
+    processing_input: "Processing input files"
+    segments_extracted: "Extracted {count} text segments"
+    no_valid_input: "No valid input found"
+    splitting_text: "Splitting text"
+    split_completed: "Split into {count} text segments"
+    generating_output: "Generating output in formats: {formats}"
+    processing_single_file: "Generating notes from single file: {file_path}"
+    text_extracted: "Extracted text: {char_count} characters"
+    generating_format_output: "Generating {format} format output: {filename}"
+    unsupported_format: "Unsupported output format: {format}"
+    file_processing_failed: "File processing failed: {error}"
+    file_note_generation_failed: "Failed to generate notes from file: {error}"
+    
+  output:
+    initialized: "OutputWriter initialized: {output_dir}"
+    markdown:
+      generating: "Generating Markdown document: {filename}"
+      saved: "Markdown document saved: {path}"
+      error:
+        save: "Failed to save Markdown file: {error}"
+        generate: "Failed to generate Markdown file: {error}"
+    notebook:
+      generating: "Generating Jupyter Notebook: {filename}"
+      saved: "Jupyter Notebook saved: {path}"
+      error:
+        generate: "Failed to generate Jupyter Notebook: {error}"
+    pdf:
+      generating: "Generating PDF from Markdown: {filename}"
+      saved: "PDF document saved: {path}"
+      placeholder:
+        header: "PDF VERSION OF:"
+        warning: "Note: This is currently a PDF placeholder, actual PDF format will be implemented in later iterations"
+      error:
+        generate: "Failed to generate PDF file: {error}"
+    template:
+      missing: "Template file not found: {path}, will use default template"
+      error:
+        load: "Failed to load note template: {error}"
+    timestamp: "Generated on: {timestamp}"
+    timestamp_label: "Generated on"
+    source_label: "Source"
+    source:
+      multiple: "Multiple sources"
+    toc: "Table of Contents"
+    footer: "*This note was automatically generated by KnowForge*\n*Version: {version}*"
+    generating_markdown: "Generating Markdown document..."
+    generating_notebook: "Generating Jupyter Notebook..."
+    generating_pdf: "Generating PDF document..."
+    saved_to: "Saved to: {path}"
+    
+  cli:
+    welcome: "Welcome to KnowForge - AI-powered study note generator"
+    version: "Version: {version}"
+    version_info: "KnowForge v{version}"
+    input_dir_help: "Input file directory"
+    output_dir_help: "Output file directory"
+    config_path_help: "Configuration file path"
+    formats_help: "Output formats, comma separated"
+    warning_unsupported_format: "Warning: Unsupported output format: {formats}"
+    error_no_valid_format: "Error: No valid output format provided, will use default: markdown"
+    file_not_exist: "Error: File does not exist: {file_path}"
+    unsupported_output_format: "Error: Unsupported output format: {format}"
+    supported_formats: "Supported formats: markdown, ipynb, pdf"
+    note_generated: "Note generated: {path}"
+    preparing: "Preparing..."
+    processing_file: "Processing file: {filename}..."
+    generating: "Generating notes..."
+    progress_bar: "Progress: [{bar}] {percentage:.1f}%"
+    completed: "Completed!"
+    error: "Error occurred: {message}"
+    
+  scripts:
+    clean_workspace_success: "✅ Workspace cleaned and reinitialized"
+    rebuild_memory_success: "✅ Memory database rebuilt successfully"
+    export_config_success: "✅ Configuration documentation exported"

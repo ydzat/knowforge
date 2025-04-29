@@ -1,0 +1,229 @@
+# KnowForge中文语言资源文件
+zh:
+  system:
+    start_message: "KnowForge程序启动"
+    startup: "KnowForge v{version} 启动"
+    shutdown_message: "KnowForge程序已关闭"
+    error_occurred: "发生错误，请查看logs文件了解详细信息。"
+    unexpected_error: "程序遇到未处理的异常，已记录日志。"
+    processing: "正在处理..."
+    completed: "处理完成"
+    reading_input: "将从 {input_dir} 读取输入"
+    generating_format: "将生成 {formats} 格式的笔记"
+    no_input_files: "没有找到任何可处理的输入文件"
+    generated_notes: "生成的笔记文件:"
+    format_output: "- {format}: {path}"
+    error_prefix: "发生错误: {error}"
+    
+  input:
+    scanning: "正在扫描输入文件..."
+    processing_pdf: "正在处理PDF文件: {filename}"
+    processing_image: "正在处理图像文件: {filename}"
+    processing_code: "正在处理代码文件: {filename}"
+    processing_link: "正在处理链接: {url}"
+    processing_file: "正在处理文件: {filename}"
+    invalid_input: "无效的输入: {input}"
+    invalid_file: "无效的文件: {filename}"
+    no_input_found: "未找到任何有效的输入文件"
+    file_too_large: "文件超过大小限制: {file_path} ({size:.2f}MB > {max_size}MB)"
+    unsupported_format: "不支持的文件格式: {file_path} ({extension})"
+    file_not_exist: "文件不存在: {filename}"
+    extract_success_pdf: "成功从PDF提取了{char_count}个字符"
+    extract_fail_pdf: "无法处理PDF文件 {filename}: {error}"
+    extract_success_webpage: "成功从网页提取了{char_count}个字符"
+    extract_fail_webpage: "无法处理网页链接 {url}: {error}"
+    read_file_fail: "读取文件失败 {filename}: {error}"
+    ocr_not_implemented: "OCR功能尚未实现，无法处理图片"
+    unknown_title: "未知标题"
+    file_size_exceeded: "文件超过大小限制: {filename} ({actual_size:.2f}MB > {max_size}MB)"
+    unsupported_file_format: "不支持的文件格式: {filename} ({format})"
+    unsupported_file_type: "不支持的文件类型: {file_type}"
+    save_preprocessed_fail: "保存预处理文本失败: {error}"
+    handler_initialized: "InputHandler初始化: {input_dir}"
+    scan_result: "扫描到的输入文件: PDF={pdf_count}, 图片={image_count}, 代码={code_count}, 链接={link_count}"
+    extracted_segments: "共提取了{count}个文本片段"
+    process_code_fail: "处理代码文件失败: {filename}, 错误: {error}"
+    read_link_fail: "读取链接文件失败: {filename}, 错误: {error}"
+    
+  splitter:
+    splitting_text: "正在拆分文本..."
+    splitting_completed: "文本拆分完成，共 {count} 个片段"
+    split_by_chapter_success: "按章节结构拆分成功，得到{count}个章节"
+    split_by_paragraph_success: "按段落拆分成功，得到{count}个段落"
+    fallback_to_hard_split: "无法按结构拆分，将使用硬拆分"
+    initialized: "Splitter初始化: chunk_size={chunk_size}, overlap_size={overlap_size}"
+    llm_enabled: "已启用LLM辅助拆分功能 (提供商: {provider})"
+    llm_disabled: "已禁用LLM辅助拆分功能，使用基于规则的拆分"
+    attempt_llm_splitting: "尝试使用LLM进行文本拆分..."
+    llm_success: "LLM成功将文本拆分为{count}个章节"
+    llm_failed: "LLM拆分失败，尝试备用方法"
+    llm_error: "LLM拆分出错: {error}，尝试备用方法"
+    using_paragraph_backup: "使用基于段落的备用拆分方法"
+    paragraph_success: "使用段落拆分方法，文本拆分为{count}个片段"
+    hard_split_fallback: "所有智能拆分方法均失败，执行简单硬拆分"
+    insufficient_headers: "检测到的标题不足 (找到{found}，至少需要{required}个)"
+    no_pattern_detected: "未检测到可靠的章节模式"
+    markdown_headers_split: "使用Markdown标题拆分为{count}个章节"
+    chinese_headers_split: "使用中文章节格式拆分为{count}个章节"
+    english_headers_split: "使用英文章节格式拆分为{count}个章节"
+    markdown_regex_split: "使用Markdown正则表达式拆分为{count}个章节"
+    chinese_regex_split: "使用中文章节正则表达式拆分为{count}个章节"
+    english_regex_split: "使用英文章节正则表达式拆分为{count}个章节"
+    regex_split_error: "正则表达式拆分失败: {error}"
+    no_llm_api_key: "LLM拆分需要API密钥配置"
+    unsupported_llm_provider: "不支持的LLM提供商: {provider}"
+    call_llm_analyze: "调用LLM分析文档结构..."
+    using_model: "使用模型: {model}"
+    llm_analysis_result: "LLM分析结果: {result}..."
+    extracted_regex_patterns: "从LLM分析中提取了{count}个正则表达式模式"
+    regex_matches: "正则'{pattern}'找到{count}个匹配项"
+    regex_split_success: "正则'{pattern}'成功将文本拆分为{count}个章节"
+    invalid_regex: "LLM建议的正则'{pattern}'无效: {error}"
+    llm_split_success: "LLM成功使用模式拆分文本: {pattern}"
+    try_direct_split_points: "正则拆分失败，尝试从LLM获取直接拆分点..."
+    llm_split_suggestions: "LLM拆分点建议: {suggestions}"
+    llm_provided_split_points: "LLM提供了{count}个拆分点"
+    llm_split_points_success: "使用LLM提供的拆分点成功拆分为{count}个章节"
+    parse_split_points_failed: "解析LLM提供的拆分点失败: {error}"
+    llm_fallback_rule_based: "LLM分析未能产生有效拆分，回退到基于规则的拆分"
+    openai_import_error: "使用OpenAI SDK需要安装openai包: pip install openai"
+    deepseek_api_error: "DeepSeek API调用失败: {error}"
+    standard_patterns_success: "使用标准模式成功将文本拆分为{count}个片段"
+    llm_system_prompt: "你是一位专业的文档结构分析专家，擅长识别文档章节结构和标题模式。"
+    direct_split_system_prompt: "你是一位专业的文档结构分析助手。"
+    llm_prompt_template: |
+      请作为一位专业文档结构分析专家，分析以下文本的章节结构。
+      
+      以下是文本样本:
+      ```
+      {sample_text}
+      ```
+      
+      基于初步分析，我们已经识别出一些可能的标题或章节分隔点:
+      {sample_headers}
+      
+      请执行以下任务:
+      1. 分析文档的整体结构，找出所有章节标题、小节标题或其他内容分隔点的模式
+      2. 确定哪些是主要章节标题，哪些是次级标题
+      3. 提供一个正则表达式模式，用于准确匹配这些主要章节标题
+      4. 判断这些标题的层次关系，并说明文档的大致结构
+      
+      回答要包含:
+      1. 文档结构的简要描述
+      2. 主要章节标题的模式及示例
+      3. 一个或多个可以用于拆分文档的正则表达式，需要包含在```regex```代码块中
+      4. 建议的拆分策略：按哪一级的标题进行拆分最合理
+      
+      请确保你的正则表达式能够准确匹配文档中的章节标题，不会误匹配正文内容。
+    direct_split_prompt_template: |
+      我需要你帮我确定如何将以下文本拆分成独立的章节。
+
+      文本样本:
+      ```
+      {sample_text}
+      ```
+
+      请直接给出文档中所有你认为应该作为拆分点的文本行的行号（基于0的索引）。
+      回答格式应该是一个简单的数字列表，例如:
+      ```
+      0
+      15
+      42
+      87
+      ```
+
+      每个数字代表一个新章节的开始行。请确保第一行总是包含进去（行号0）。
+    
+  memory:
+    storing: "正在存储向量到记忆库..."
+    retrieving: "正在检索相关记忆..."
+    rebuilding: "正在重建记忆库..."
+    
+  llm:
+    calling_api: "正在调用AI模型..."
+    api_error: "API调用出错: {message}"
+    rate_limit: "达到API速率限制，等待重试..."
+    
+  processor:
+    initialized: "Processor初始化成功"
+    init_failed: "Processor初始化失败: {error}"
+    config_loaded: "配置加载完成: {path}"
+    pipeline_start: "开始完整处理流程"
+    pipeline_completed: "处理流程完成，耗时 {elapsed:.2f} 秒"
+    pipeline_failed: "处理流程失败: {error}"
+    note_generation_failed: "笔记生成失败: {error}"
+    processing_input: "正在处理输入文件"
+    segments_extracted: "提取了{count}个文本片段"
+    no_valid_input: "未找到任何有效输入"
+    splitting_text: "正在拆分文本"
+    split_completed: "拆分为{count}个文本片段"
+    generating_output: "生成输出，格式: {formats}"
+    processing_single_file: "从单个文件生成笔记: {file_path}"
+    text_extracted: "提取文本: {char_count}字符"
+    generating_format_output: "生成{format}格式输出: {filename}"
+    unsupported_format: "不支持的输出格式: {format}"
+    file_processing_failed: "从文件生成笔记失败: {error}"
+    file_note_generation_failed: "从文件生成笔记失败: {error}"
+    
+  output:
+    initialized: "OutputWriter初始化: {output_dir}"
+    markdown:
+      generating: "生成Markdown文档: {filename}"
+      saved: "Markdown文档已保存: {path}"
+      error:
+        save: "保存Markdown文件失败: {error}"
+        generate: "无法生成Markdown文件: {error}"
+    notebook:
+      generating: "生成Jupyter Notebook: {filename}"
+      saved: "Jupyter Notebook已保存: {path}"
+      error:
+        generate: "无法生成Jupyter Notebook: {error}"
+    pdf:
+      generating: "从Markdown生成PDF: {filename}"
+      saved: "PDF文档已保存: {path}"
+      placeholder:
+        header: "PDF版本文件："
+        warning: "注意：当前只生成了PDF占位符，实际PDF格式将在后续迭代中实现"
+      error:
+        generate: "无法生成PDF文件: {error}"
+    template:
+      missing: "模板文件不存在: {path}，将使用默认模板"
+      error:
+        load: "无法加载笔记模板: {error}"
+    timestamp: "生成时间: {timestamp}"
+    timestamp_label: "生成时间"
+    source_label: "来源"
+    source:
+      multiple: "多个来源"
+    toc: "目录"
+    footer: "*本笔记由 KnowForge 自动生成*\n*版本: {version}*"
+    generating_markdown: "正在生成Markdown文档..."
+    generating_notebook: "正在生成Jupyter Notebook..."
+    generating_pdf: "正在生成PDF文档..."
+    saved_to: "已保存到: {path}"
+    
+  cli:
+    welcome: "欢迎使用KnowForge - AI驱动的学习笔记生成器"
+    version: "版本: {version}"
+    version_info: "KnowForge v{version}"
+    input_dir_help: "输入文件目录"
+    output_dir_help: "输出文件目录"
+    config_path_help: "配置文件路径"
+    formats_help: "生成的输出格式，逗号分隔"
+    warning_unsupported_format: "警告: 不支持的输出格式: {formats}"
+    error_no_valid_format: "错误: 未提供有效的输出格式，将使用默认格式: markdown"
+    file_not_exist: "错误: 文件不存在: {file_path}"
+    unsupported_output_format: "错误: 不支持的输出格式: {format}"
+    supported_formats: "支持的格式: markdown, ipynb, pdf"
+    note_generated: "已生成笔记: {path}"
+    preparing: "准备中..."
+    processing_file: "正在处理文件: {filename}..."
+    generating: "正在生成笔记..."
+    progress_bar: "进度: [{bar}] {percentage:.1f}%"
+    completed: "完成!"
+    error: "发生错误: {message}"
+    
+  scripts:
+    clean_workspace_success: "✅ Workspace已清空并重新初始化"
+    rebuild_memory_success: "✅ Memory数据库重建完成"
+    export_config_success: "✅ 配置文档导出完成"
