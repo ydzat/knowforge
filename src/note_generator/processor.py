@@ -7,11 +7,13 @@ from typing import List, Optional, Dict, Any
 from src.utils.config_loader import ConfigLoader
 from src.utils.locale_manager import LocaleManager
 from src.utils.logger import setup_logger, get_module_logger
+from src.utils.locale_manager import safe_get_text, safe_format_text
 from src.utils.exceptions import NoteGenError
 from src.note_generator.input_handler import InputHandler
 from src.note_generator.splitter import Splitter
 from src.note_generator.output_writer import OutputWriter
 
+# 使用安全版本的文本获取函数，避免循环依赖
 logger = get_module_logger("processor")
 
 class Processor:
@@ -46,8 +48,9 @@ class Processor:
             language = self.config.get("system.language", "zh")
             self.locale = LocaleManager(f"resources/locales/{language}.yaml", language)
             
-            self.logger.info(self.locale.get("processor.initialized"))
-            self.logger.info(self.locale.get("processor.config_loaded").format(path=config_path))
+            # 使用安全版本的格式化函数记录日志
+            logger.info(safe_get_text("processor.initialized"))
+            logger.info(safe_format_text("processor.config_loaded", {"path": config_path}))
             
             # 确保工作目录存在
             self.workspace_dir = self.config.get(
@@ -66,13 +69,9 @@ class Processor:
             self.output_writer = OutputWriter(self.workspace_dir, output_dir, self.config, self.locale)
             
         except Exception as e:
-            # 如果配置加载失败，尝试获取默认的locale错误消息，否则使用英文
-            error_msg = "Processor initialization failed: {0}"
-            if hasattr(self, 'locale') and self.locale:
-                self.logger.error(self.locale.get("processor.init_failed").format(error=str(e)))
-            else:
-                self.logger.error(error_msg.format(str(e)))
-            raise NoteGenError(error_msg.format(str(e)))
+            # 使用安全版本记录错误日志
+            logger.error(safe_format_text("processor.init_failed", {"error": str(e)}))
+            raise NoteGenError(safe_format_text("processor.init_failed", {"error": str(e)}))
     
     def run_full_pipeline(self, output_formats: List[str] = None) -> Dict[str, str]:
         """
@@ -86,7 +85,7 @@ class Processor:
             输出文件路径的字典，格式为 {"markdown": "path/to/file.md", ...}
         """
         start_time = time.time()
-        self.logger.info(self.locale.get("processor.pipeline_start"))
+        logger.info(safe_get_text("processor.pipeline_start"))
         
         if output_formats is None:
             # 使用配置中的默认输出格式
@@ -94,21 +93,21 @@ class Processor:
         
         try:
             # 1. 处理输入文件
-            self.logger.info(self.locale.get("processor.processing_input"))
+            logger.info(safe_get_text("processor.processing_input"))
             segments = self.input_handler.extract_texts()
-            self.logger.info(self.locale.get("processor.segments_extracted").format(count=len(segments)))
+            logger.info(safe_format_text("processor.segments_extracted", {"count": len(segments)}))
             
             if not segments:
-                self.logger.warning(self.locale.get("processor.no_valid_input"))
+                logger.warning(safe_get_text("processor.no_valid_input"))
                 return {}
             
             # 2. 拆分文本
-            self.logger.info(self.locale.get("processor.splitting_text"))
+            logger.info(safe_get_text("processor.splitting_text"))
             split_segments = self.splitter.split_text(segments)
-            self.logger.info(self.locale.get("processor.split_completed").format(count=len(split_segments)))
+            logger.info(safe_format_text("processor.split_completed", {"count": len(split_segments)}))
             
             # 3. 生成输出
-            self.logger.info(self.locale.get("processor.generating_output").format(formats=", ".join(output_formats)))
+            logger.info(safe_format_text("processor.generating_output", {"formats": ", ".join(output_formats)}))
             output_paths = {}
             
             for fmt in output_formats:
@@ -127,13 +126,13 @@ class Processor:
                     output_paths["pdf"] = path
             
             elapsed = time.time() - start_time
-            self.logger.info(self.locale.get("processor.pipeline_completed").format(elapsed=elapsed))
+            logger.info(safe_format_text("processor.pipeline_completed", {"elapsed": elapsed}))
             
             return output_paths
             
         except Exception as e:
-            self.logger.error(self.locale.get("processor.pipeline_failed").format(error=str(e)))
-            raise NoteGenError(self.locale.get("processor.note_generation_failed").format(error=str(e)))
+            logger.error(safe_format_text("processor.pipeline_failed", {"error": str(e)}))
+            raise NoteGenError(safe_format_text("processor.note_generation_failed", {"error": str(e)}))
     
     def generate_note(self, 
                      input_file: str, 
@@ -148,20 +147,21 @@ class Processor:
         Returns:
             输出文件路径
         """
-        self.logger.info(self.locale.get("processor.processing_single_file").format(file_path=input_file))
+        logger.info(safe_format_text("processor.processing_single_file", {"file_path": input_file}))
         
         try:
             # 1. 处理单个输入文件
             text = self.input_handler.process_file(input_file)
-            self.logger.info(self.locale.get("processor.text_extracted").format(char_count=len(text)))
+            logger.info(safe_format_text("processor.text_extracted", {"char_count": len(text)}))
             
             # 2. 拆分文本
             segments = self.splitter.split_text([text])
-            self.logger.info(self.locale.get("processor.split_completed").format(count=len(segments)))
+            logger.info(safe_format_text("processor.split_completed", {"count": len(segments)}))
             
             # 3. 生成输出
             filename = os.path.splitext(os.path.basename(input_file))[0]
-            self.logger.info(self.locale.get("processor.generating_format_output").format(format=output_format, filename=filename))
+            logger.info(safe_format_text("processor.generating_format_output", 
+                                    {"format": output_format, "filename": filename}))
             
             if output_format == "markdown":
                 return self.output_writer.generate_markdown(segments, filename)
@@ -171,8 +171,8 @@ class Processor:
                 md_path = self.output_writer.generate_markdown(segments, filename)
                 return self.output_writer.generate_pdf(md_path, filename)
             else:
-                raise NoteGenError(self.locale.get("processor.unsupported_format").format(format=output_format))
+                raise NoteGenError(safe_format_text("processor.unsupported_format", {"format": output_format}))
             
         except Exception as e:
-            self.logger.error(self.locale.get("processor.file_processing_failed").format(error=str(e)))
-            raise NoteGenError(self.locale.get("processor.file_note_generation_failed").format(error=str(e)))
+            logger.error(safe_format_text("processor.file_processing_failed", {"error": str(e)}))
+            raise NoteGenError(safe_format_text("processor.file_note_generation_failed", {"error": str(e)}))

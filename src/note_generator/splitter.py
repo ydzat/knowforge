@@ -7,11 +7,113 @@ import statistics
 from typing import List, Dict, Optional, Tuple, Any
 from collections import Counter
 from src.utils.logger import get_module_logger
+from src.utils.locale_manager import safe_get_text
 from src.utils.config_loader import ConfigLoader
 from src.utils.locale_manager import LocaleManager
 from src.utils.exceptions import NoteGenError
 
+# 导入logloom的Logger，但不直接使用其国际化功能以避免递归
+from logloom import Logger
+
 logger = get_module_logger("splitter")
+
+# 预定义安全的文本消息，避免递归调用
+_SPLITTER_MESSAGES = {
+    "zh": {
+        "splitter.initialized": "拆分器已初始化，块大小: {chunk_size}，重叠大小: {overlap_size}",
+        "splitter.llm_enabled": "启用LLM拆分，提供商: {provider}",
+        "splitter.llm_disabled": "未启用LLM辅助拆分",
+        "splitter.splitting_completed": "拆分完成，共拆分为{count}个片段",
+        "splitter.llm_not_enabled": "未启用LLM功能，无法使用LLM拆分",
+        "splitter.llm_not_configured": "LLM未配置API密钥",
+        "splitter.llm_split_success_count": "LLM拆分成功，共生成{count}个片段",
+        "splitter.llm_split_failed": "LLM拆分失败",
+        "splitter.llm_split_error": "LLM拆分出错: {error}",
+        "splitter.insufficient_headers": "找到的标题数量不足，找到{found}个，需要{required}个",
+        "splitter.no_pattern_detected": "未检测到标题模式",
+        "splitter.markdown_headers_split": "使用Markdown标题拆分，共{count}个片段",
+        "splitter.chinese_headers_split": "使用中文章节标题拆分，共{count}个片段",
+        "splitter.english_headers_split": "使用英文章节标题拆分，共{count}个片段",
+        "splitter.markdown_regex_split": "使用Markdown正则表达式拆分，共{count}个片段",
+        "splitter.chinese_regex_split": "使用中文正则表达式拆分，共{count}个片段",
+        "splitter.english_regex_split": "使用英文正则表达式拆分，共{count}个片段",
+        "splitter.regex_split_error": "正则表达式拆分失败: {error}",
+        "splitter.no_llm_api_key": "未配置LLM API密钥",
+        "splitter.unsupported_llm_provider": "不支持的LLM提供商: {provider}",
+        "splitter.call_llm_analyze": "调用LLM进行文档结构分析",
+        "splitter.using_model": "使用模型: {model}",
+        "splitter.llm_analysis_result": "LLM分析结果: {result}...",
+        "splitter.extracted_regex_patterns": "提取了{count}个正则表达式模式",
+        "splitter.regex_matches": "使用模式 '{pattern}' 找到{count}个匹配项",
+        "splitter.regex_split_success": "使用模式 '{pattern}' 成功拆分为{count}个片段",
+        "splitter.invalid_regex": "无效的正则表达式 '{pattern}': {error}",
+        "splitter.llm_split_success": "LLM拆分成功，使用模式: {pattern}",
+        "splitter.try_direct_split_points": "尝试直接获取LLM提供的拆分点",
+        "splitter.llm_split_suggestions": "LLM拆分建议: {suggestions}",
+        "splitter.llm_provided_split_points": "LLM提供了{count}个拆分点",
+        "splitter.llm_split_points_success": "使用LLM提供的拆分点成功拆分为{count}个片段",
+        "splitter.parse_split_points_failed": "解析拆分点失败: {error}",
+        "splitter.openai_import_error": "导入OpenAI模块失败，请确保已安装openai库",
+        "splitter.deepseek_api_error": "调用DeepSeek API失败: {error}",
+        "splitter.locale_load_failed": "加载语言资源失败: {error}",
+        "splitter.llm_prompt_template": "请分析以下文本的结构，识别章节标题的模式，并提供一个正则表达式来匹配这些标题。\n\n示例文本：\n{sample_text}\n\n已检测到的可能标题：\n{sample_headers}\n\n请提供一个能够匹配文档中章节标题的正则表达式，使用```regex 和 ``` 包围你的答案。",
+        "splitter.llm_system_prompt": "你是一个专业的文档分析助手，擅长识别文档结构和章节模式。请分析文本结构并提供准确的正则表达式用于拆分章节。",
+        "splitter.direct_split_prompt_template": "请分析以下文本，并提供最适合的章节拆分点（以行号表示）。\n\n示例文本：\n{sample_text}\n\n只需返回行号，每行一个数字，不要包含其他内容。",
+        "splitter.direct_split_system_prompt": "你是一个专业的文档结构分析助手。请仔细分析文档，找出合适的章节拆分点，仅返回行号列表。"
+    },
+    "en": {
+        "splitter.initialized": "Splitter initialized, chunk size: {chunk_size}, overlap size: {overlap_size}",
+        "splitter.llm_enabled": "LLM splitting enabled, provider: {provider}",
+        "splitter.llm_disabled": "LLM-assisted splitting disabled",
+        "splitter.splitting_completed": "Splitting completed, produced {count} segments",
+        "splitter.llm_not_enabled": "LLM feature not enabled, cannot use LLM splitting",
+        "splitter.llm_not_configured": "LLM API key not configured",
+        "splitter.llm_split_success_count": "LLM splitting successful, generated {count} segments",
+        "splitter.llm_split_failed": "LLM splitting failed",
+        "splitter.llm_split_error": "Error in LLM splitting: {error}",
+        "splitter.insufficient_headers": "Insufficient headers found, found {found}, required {required}",
+        "splitter.no_pattern_detected": "No header pattern detected",
+        "splitter.markdown_headers_split": "Split using Markdown headers, {count} segments",
+        "splitter.chinese_headers_split": "Split using Chinese chapter headers, {count} segments",
+        "splitter.english_headers_split": "Split using English chapter headers, {count} segments",
+        "splitter.markdown_regex_split": "Split using Markdown regex, {count} segments",
+        "splitter.chinese_regex_split": "Split using Chinese regex, {count} segments",
+        "splitter.english_regex_split": "Split using English regex, {count} segments",
+        "splitter.regex_split_error": "Regex splitting failed: {error}",
+        "splitter.no_llm_api_key": "LLM API key not configured",
+        "splitter.unsupported_llm_provider": "Unsupported LLM provider: {provider}",
+        "splitter.call_llm_analyze": "Calling LLM for document structure analysis",
+        "splitter.using_model": "Using model: {model}",
+        "splitter.llm_analysis_result": "LLM analysis result: {result}...",
+        "splitter.extracted_regex_patterns": "Extracted {count} regex patterns",
+        "splitter.regex_matches": "Found {count} matches using pattern '{pattern}'",
+        "splitter.regex_split_success": "Successfully split into {count} segments using pattern '{pattern}'",
+        "splitter.invalid_regex": "Invalid regex '{pattern}': {error}",
+        "splitter.llm_split_success": "LLM splitting successful, using pattern: {pattern}",
+        "splitter.try_direct_split_points": "Trying to get direct split points from LLM",
+        "splitter.llm_split_suggestions": "LLM split suggestions: {suggestions}",
+        "splitter.llm_provided_split_points": "LLM provided {count} split points",
+        "splitter.llm_split_points_success": "Successfully split into {count} segments using LLM-provided split points",
+        "splitter.parse_split_points_failed": "Failed to parse split points: {error}",
+        "splitter.openai_import_error": "Failed to import OpenAI module, please ensure the openai library is installed",
+        "splitter.deepseek_api_error": "Error calling DeepSeek API: {error}",
+        "splitter.locale_load_failed": "Failed to load locale resources: {error}",
+        "splitter.llm_prompt_template": "Please analyze the structure of the following text, identify patterns in chapter headings, and provide a regex to match these headings.\n\nSample text:\n{sample_text}\n\nDetected possible headings:\n{sample_headers}\n\nPlease provide a regex that can match the chapter headings in the document, surrounded by ```regex and ```.",
+        "splitter.llm_system_prompt": "You are a professional document analysis assistant, skilled at identifying document structure and chapter patterns. Please analyze the text structure and provide accurate regex for splitting chapters.",
+        "splitter.direct_split_prompt_template": "Please analyze the following text and provide the most appropriate chapter split points (as line numbers).\n\nSample text:\n{sample_text}\n\nJust return the line numbers, one number per line, without any other content.",
+        "splitter.direct_split_system_prompt": "You are a professional document structure analysis assistant. Please carefully analyze the document, find suitable chapter split points, and return only a list of line numbers."
+    }
+}
+
+def _get_splitter_message(key: str, params: Dict[str, Any] = None, lang: str = "zh") -> str:
+    """安全地获取预定义消息，避免递归调用"""
+    text = _SPLITTER_MESSAGES.get(lang, {}).get(key, key)
+    if params:
+        try:
+            return text.format(**params)
+        except Exception:
+            return text
+    return text
 
 class Splitter:
     """文本拆分器类"""
@@ -29,12 +131,13 @@ class Splitter:
         try:
             language = config.get("system.language", "zh")
             self.locale = LocaleManager(f"resources/locales/{language}.yaml", language)
+            self.lang = language
         except Exception as e:
-            logger.warning("Failed to load language resources: {0}, will use default messages".format(str(e)))
+            logger.warning(_get_splitter_message("splitter.locale_load_failed", {"error": str(e)}, "zh"))
             self.locale = None
+            self.lang = "zh"
         
         # 从配置中获取拆分参数
-        # 我们使用get方法，但用户提供的配置应优先于默认值
         self.chunk_size = config.get("splitter.chunk_size")
         self.overlap_size = config.get("splitter.overlap_size")
         
@@ -68,26 +171,15 @@ class Splitter:
             r'^[IVXivx]+\.\s+.+$',      # 罗马数字编号 (I. 标题)
         ]
         
-        if self.locale:
-            logger.info(self.locale.get("splitter.initialized").format(
-                chunk_size=self.chunk_size, overlap_size=self.overlap_size
-            ))
-        else:
-            logger.info("Splitter initialized: chunk_size={0}, overlap_size={1}".format(
-                self.chunk_size, self.overlap_size
-            ))
+        # 使用安全的消息格式化记录初始化信息
+        logger.info(_get_splitter_message("splitter.initialized", 
+            {"chunk_size": self.chunk_size, "overlap_size": self.overlap_size}, self.lang))
         
         # 记录LLM配置
         if self.use_llm:
-            if self.locale:
-                logger.info(self.locale.get("splitter.llm_enabled").format(provider=self.llm_provider))
-            else:
-                logger.info("LLM-assisted splitting enabled (provider: {0})".format(self.llm_provider))
+            logger.info(_get_splitter_message("splitter.llm_enabled", {"provider": self.llm_provider}, self.lang))
         else:
-            if self.locale:
-                logger.info(self.locale.get("splitter.llm_disabled"))
-            else:
-                logger.info("LLM-assisted splitting disabled, will raise error if splitting is attempted")
+            logger.info(_get_splitter_message("splitter.llm_disabled", {}, self.lang))
 
     def split_text(self, text_segments: List[str]) -> List[str]:
         """
@@ -115,12 +207,7 @@ class Splitter:
                     # 否则直接添加
                     results.append(segment)
         
-        if self.locale:
-            logger.info(self.locale.get("splitter.splitting_completed").format(count=len(results)))
-        else:
-            logger.info("Text splitting completed: input {0} segments, split into {1} segments".format(
-                len(text_segments), len(results)
-            ))
+        logger.info(_get_splitter_message("splitter.splitting_completed", {"count": len(results)}, self.lang))
         return results
     
     def _split_by_structure(self, text: str) -> List[str]:
@@ -139,9 +226,9 @@ class Splitter:
 
         # 确保LLM已配置好
         if not self.use_llm:
-            raise ValueError("LLM未启用，无法进行拆分")
+            raise ValueError(_get_splitter_message("splitter.llm_not_enabled", {}, self.lang))
         if not self.llm_api_key:
-            raise ValueError("LLM未启用或未正确配置，无法进行拆分")
+            raise ValueError(_get_splitter_message("splitter.llm_not_configured", {}, self.lang))
 
         try:
             # 使用LLM辅助拆分
@@ -149,12 +236,12 @@ class Splitter:
             segments = self._split_with_llm_assistance(text, detected_patterns, headers)
 
             if segments and len(segments) > 1:
-                logger.info(f"LLM成功拆分文本为{len(segments)}个部分")
+                logger.info(_get_splitter_message("splitter.llm_split_success_count", {"count": len(segments)}, self.lang))
                 return segments
             else:
-                raise ValueError("LLM未能成功拆分文本")
+                raise ValueError(_get_splitter_message("splitter.llm_split_failed", {}, self.lang))
         except Exception as e:
-            logger.error(f"LLM拆分失败: {str(e)}")
+            logger.error(_get_splitter_message("splitter.llm_split_error", {"error": str(e)}, self.lang))
             raise
     
     def _detect_document_structure(self, text: str) -> Tuple[List[str], List[str]]:
@@ -184,24 +271,16 @@ class Splitter:
                     break
         
         if len(potential_headers) < self.min_headers_for_pattern:
-            if self.locale:
-                logger.debug(self.locale.get("splitter.insufficient_headers").format(
-                    found=len(potential_headers), required=self.min_headers_for_pattern
-                ))
-            else:
-                logger.debug("Not enough standard header patterns detected (found {0}, need at least {1})".format(
-                    len(potential_headers), self.min_headers_for_pattern
-                ))
+            logger.debug(_get_splitter_message("splitter.insufficient_headers",
+                {"found": len(potential_headers), "required": self.min_headers_for_pattern}, 
+                self.lang))
             
             # 尝试使用文本特征识别标题
             potential_headers = self._analyze_text_features_for_headers(lines)
         
         # 如果仍然没有找到足够的标题，返回空结果
         if len(potential_headers) < self.min_headers_for_pattern:
-            if self.locale:
-                logger.debug(self.locale.get("splitter.no_pattern_detected"))
-            else:
-                logger.debug("No reliable section pattern detected")
+            logger.debug(_get_splitter_message("splitter.no_pattern_detected", {}, self.lang))
             return [], []
         
         # 分析检测到的标题，提取共同模式
@@ -446,10 +525,7 @@ class Splitter:
                 start_idx = markdown_headers[i][0]
                 end_idx = markdown_headers[i+1][0] if i < len(markdown_headers)-1 else len(lines)
                 segments.append('\n'.join(lines[start_idx:end_idx]))
-            if self.locale:
-                logger.debug(self.locale.get("splitter.markdown_headers_split").format(count=len(segments)))
-            else:
-                logger.debug("Split into {0} sections using Markdown headers".format(len(segments)))
+            logger.debug(_get_splitter_message("splitter.markdown_headers_split", {"count": len(segments)}, self.lang))
             return segments
         
         # 如果找到多个中文章节标题
@@ -459,10 +535,7 @@ class Splitter:
                 start_idx = chinese_headers[i][0]
                 end_idx = chinese_headers[i+1][0] if i < len(chinese_headers)-1 else len(lines)
                 segments.append('\n'.join(lines[start_idx:end_idx]))
-            if self.locale:
-                logger.debug(self.locale.get("splitter.chinese_headers_split").format(count=len(segments)))
-            else:
-                logger.debug("Split into {0} sections using Chinese chapter format".format(len(segments)))
+            logger.debug(_get_splitter_message("splitter.chinese_headers_split", {"count": len(segments)}, self.lang))
             return segments
         
         # 如果找到多个英文章节标题
@@ -472,10 +545,7 @@ class Splitter:
                 start_idx = english_headers[i][0]
                 end_idx = english_headers[i+1][0] if i < len(english_headers)-1 else len(lines)
                 segments.append('\n'.join(lines[start_idx:end_idx]))
-            if self.locale:
-                logger.debug(self.locale.get("splitter.english_headers_split").format(count=len(segments)))
-            else:
-                logger.debug("Split into {0} sections using English chapter format".format(len(segments)))
+            logger.debug(_get_splitter_message("splitter.english_headers_split", {"count": len(segments)}, self.lang))
             return segments
         
         # 3. 如果上述方法都失败，尝试使用正则表达式
@@ -489,10 +559,7 @@ class Splitter:
                     start_pos = matches[i].start()
                     end_pos = matches[i+1].start() if i < len(matches)-1 else len(clean_text)
                     segments.append(clean_text[start_pos:end_pos])
-                if self.locale:
-                    logger.debug(self.locale.get("splitter.markdown_regex_split").format(count=len(segments)))
-                else:
-                    logger.debug("Split into {0} sections using Markdown regex".format(len(segments)))
+                logger.debug(_get_splitter_message("splitter.markdown_regex_split", {"count": len(segments)}, self.lang))
                 return segments
             
             # 中文章节格式 (第X章)
@@ -504,10 +571,7 @@ class Splitter:
                     start_pos = matches[i].start()
                     end_pos = matches[i+1].start() if i < len(matches)-1 else len(clean_text)
                     segments.append(clean_text[start_pos:end_pos])
-                if self.locale:
-                    logger.debug(self.locale.get("splitter.chinese_regex_split").format(count=len(segments)))
-                else:
-                    logger.debug("Split into {0} sections using Chinese chapter regex".format(len(segments)))
+                logger.debug(_get_splitter_message("splitter.chinese_regex_split", {"count": len(segments)}, self.lang))
                 return segments
             
             # 英文章节格式 (Chapter X)
@@ -519,16 +583,10 @@ class Splitter:
                     start_pos = matches[i].start()
                     end_pos = matches[i+1].start() if i < len(matches)-1 else len(clean_text)
                     segments.append(clean_text[start_pos:end_pos])
-                if self.locale:
-                    logger.debug(self.locale.get("splitter.english_regex_split").format(count=len(segments)))
-                else:
-                    logger.debug("Split into {0} sections using English chapter regex".format(len(segments)))
+                logger.debug(_get_splitter_message("splitter.english_regex_split", {"count": len(segments)}, self.lang))
                 return segments
         except Exception as e:
-            if self.locale:
-                logger.warning(self.locale.get("splitter.regex_split_error").format(error=str(e)))
-            else:
-                logger.warning("Regex splitting failed: {0}".format(str(e)))
+            logger.warning(_get_splitter_message("splitter.regex_split_error", {"error": str(e)}, self.lang))
         
         # 如果以上方法都失败，返回空列表
         return []
@@ -545,23 +603,16 @@ class Splitter:
         Returns:
             拆分后的文本段落列表
         """
-        # 这里需要实现与LLM的集成
         # 如果没有配置LLM，抛出异常
         if not self.llm_api_key:
-            if self.locale:
-                raise ValueError(self.locale.get("splitter.no_llm_api_key"))
-            else:
-                raise ValueError("LLM splitting requires an API key configuration")
+            raise ValueError(_get_splitter_message("splitter.no_llm_api_key", {}, self.lang))
         
         if self.llm_provider.lower() == "openai":
             return self._split_with_openai(text, detected_patterns, headers)
         elif self.llm_provider.lower() == "deepseek":
             return self._split_with_deepseek(text, detected_patterns, headers)
         else:
-            if self.locale:
-                raise ValueError(self.locale.get("splitter.unsupported_llm_provider").format(provider=self.llm_provider))
-            else:
-                raise ValueError(f"Unsupported LLM provider: {self.llm_provider}")
+            raise ValueError(_get_splitter_message("splitter.unsupported_llm_provider", {"provider": self.llm_provider}, self.lang))
 
     def _split_with_deepseek(self, text: str, detected_patterns: List[str], headers: List[str]) -> List[str]:
         """
@@ -592,60 +643,7 @@ class Splitter:
             sample_headers = headers[:min(10, len(headers))]  # 提供更多标题样本
             
             # 构建更强大的提示词，引导LLM更好地理解文档结构
-            if self.locale:
-                prompt_template = self.locale.get("splitter.llm_prompt_template")
-                if not prompt_template:
-                    prompt_template = """
-                    请作为一位专业文档结构分析专家，分析以下文本的章节结构。
-                    
-                    以下是文本样本:
-                    ```
-                    {sample_text}
-                    ```
-                    
-                    基于初步分析，我们已经识别出一些可能的标题或章节分隔点:
-                    {sample_headers}
-                    
-                    请执行以下任务:
-                    1. 分析文档的整体结构，找出所有章节标题、小节标题或其他内容分隔点的模式
-                    2. 确定哪些是主要章节标题，哪些是次级标题
-                    3. 提供一个正则表达式模式，用于准确匹配这些主要章节标题
-                    4. 判断这些标题的层次关系，并说明文档的大致结构
-                    
-                    回答要包含:
-                    1. 文档结构的简要描述
-                    2. 主要章节标题的模式及示例
-                    3. 一个或多个可以用于拆分文档的正则表达式，需要包含在```regex```代码块中
-                    4. 建议的拆分策略：按哪一级的标题进行拆分最合理
-                    
-                    请确保你的正则表达式能够准确匹配文档中的章节标题，不会误匹配正文内容。
-                    """
-            else:
-                prompt_template = """
-                Please act as a professional document structure analyst to analyze the chapter structure of the following text.
-                
-                Here's a sample of the text:
-                ```
-                {sample_text}
-                ```
-                
-                Based on preliminary analysis, we've identified some potential titles or section break points:
-                {sample_headers}
-                
-                Please perform the following tasks:
-                1. Analyze the overall structure of the document, identify patterns of all chapter titles, section titles or other content break points
-                2. Determine which are main chapter titles and which are secondary titles
-                3. Provide a regular expression pattern to accurately match these main chapter titles
-                4. Judge the hierarchy of these titles and explain the general structure of the document
-                
-                Your answer should include:
-                1. A brief description of the document structure
-                2. Patterns and examples of main chapter titles
-                3. One or more regular expressions that can be used to split the document, enclosed in a ```regex``` code block
-                4. Recommended splitting strategy: which level of titles is most reasonable to split by
-                
-                Please ensure your regular expression can accurately match chapter titles in the document without mistakenly matching body content.
-                """
+            prompt_template = _get_splitter_message("splitter.llm_prompt_template", {}, self.lang)
             
             prompt = prompt_template.format(
                 sample_text=sample_text,
@@ -653,19 +651,13 @@ class Splitter:
             )
             
             # 调用API
-            if self.locale:
-                logger.info(self.locale.get("splitter.call_llm_analyze"))
-            else:
-                logger.info("Calling LLM to analyze document structure...")
+            logger.info(_get_splitter_message("splitter.call_llm_analyze", {}, self.lang))
                 
             model = self.config.get("llm.model", "deepseek-chat")
             
-            if self.locale:
-                logger.debug(self.locale.get("splitter.using_model").format(model=model))
-            else:
-                logger.debug(f"Using model: {model}")
+            logger.debug(_get_splitter_message("splitter.using_model", {"model": model}, self.lang))
             
-            system_prompt = self.locale.get("splitter.llm_system_prompt") if self.locale else "You are a professional document structure analysis expert who excels at identifying document section structures and title patterns."
+            system_prompt = _get_splitter_message("splitter.llm_system_prompt", {}, self.lang)
             
             response = client.chat.completions.create(
                 model=model,
@@ -679,10 +671,7 @@ class Splitter:
             # 获取响应
             llm_analysis = response.choices[0].message.content
             
-            if self.locale:
-                logger.debug(self.locale.get("splitter.llm_analysis_result").format(result=llm_analysis[:200]))
-            else:
-                logger.debug(f"LLM analysis result: {llm_analysis[:200]}...")
+            logger.debug(_get_splitter_message("splitter.llm_analysis_result", {"result": llm_analysis[:200]}, self.lang))
             
             # 从LLM分析中提取正则表达式
             import re
@@ -697,10 +686,7 @@ class Splitter:
                 regex_patterns = [line.strip() for line in llm_analysis.split('\n') 
                                  if ('regex' in line.lower() or '^' in line or '\\' in line) and len(line) < 200]
             
-            if self.locale:
-                logger.info(self.locale.get("splitter.extracted_regex_patterns").format(count=len(regex_patterns)))
-            else:
-                logger.info(f"Extracted {len(regex_patterns)} regex patterns from LLM analysis")
+            logger.info(_get_splitter_message("splitter.extracted_regex_patterns", {"count": len(regex_patterns)}, self.lang))
             
             # 使用这些模式尝试拆分文本
             all_segments = []
@@ -714,10 +700,7 @@ class Splitter:
                     # 找到所有匹配项
                     matches = list(regex.finditer(text))
                     
-                    if self.locale:
-                        logger.debug(self.locale.get("splitter.regex_matches").format(pattern=pattern, count=len(matches)))
-                    else:
-                        logger.debug(f"Regex '{pattern}' found {len(matches)} matches")
+                    logger.debug(_get_splitter_message("splitter.regex_matches", {"pattern": pattern, "count": len(matches)}, self.lang))
                     
                     if len(matches) >= 2:  # 至少需要两个匹配才有意义
                         # 用匹配点拆分文本
@@ -730,81 +713,30 @@ class Splitter:
                                 segments.append(segment.strip())
                         
                         if segments:
-                            if self.locale:
-                                logger.info(self.locale.get("splitter.regex_split_success").format(
-                                    pattern=pattern, count=len(segments)
-                                ))
-                            else:
-                                logger.info(f"Regex '{pattern}' successfully split text into {len(segments)} sections")
+                            logger.info(_get_splitter_message("splitter.regex_split_success",
+                                {"pattern": pattern, "count": len(segments)}, self.lang))
                             # 记住最好的拆分结果（产生最多章节的）
                             if len(segments) > len(all_segments):
                                 all_segments = segments
                                 successful_pattern = pattern
                 except Exception as e:
                     # 忽略无效的正则表达式
-                    if self.locale:
-                        logger.debug(self.locale.get("splitter.invalid_regex").format(pattern=pattern, error=str(e)))
-                    else:
-                        logger.debug(f"LLM suggested regex '{pattern}' is invalid: {str(e)}")
+                    logger.debug(_get_splitter_message("splitter.invalid_regex", {"pattern": pattern, "error": str(e)}, self.lang))
                     continue
             
             # 如果找到了有效拆分
             if all_segments:
-                if self.locale:
-                    logger.info(self.locale.get("splitter.llm_split_success").format(pattern=successful_pattern))
-                else:
-                    logger.info(f"LLM successfully split text using pattern: {successful_pattern}")
+                logger.info(_get_splitter_message("splitter.llm_split_success", {"pattern": successful_pattern}, self.lang))
                 return all_segments
+                
             # 如果没有找到有效拆分，尝试第二种方法：直接让LLM提供拆分点
-            if self.locale:
-                logger.info(self.locale.get("splitter.try_direct_split_points"))
-            else:
-                logger.info("Regex splitting failed, trying to get direct split points from LLM...")
+            logger.info(_get_splitter_message("splitter.try_direct_split_points", {}, self.lang))
+            
             # 构建新的提示，要求LLM直接提供拆分点
-            if self.locale:
-                split_prompt_template = self.locale.get("splitter.direct_split_prompt_template")
-                if not split_prompt_template:
-                    split_prompt_template = """
-                    我需要你帮我确定如何将以下文本拆分成独立的章节。
-
-                    文本样本:
-                    ```
-                    {sample_text}
-                    ```
-
-                    请直接给出文档中所有你认为应该作为拆分点的文本行的行号（基于0的索引）。
-                    回答格式应该是一个简单的数字列表，例如:
-                    ```
-                    0
-                    15
-                    42
-                    87
-                    ```
-
-                    每个数字代表一个新章节的开始行。请确保第一行总是包含进去（行号0）。
-                    """
-            else:
-                split_prompt_template = """
-                I need your help determining how to split the following text into separate chapters.
-
-                Text sample:
-                ```
-                {sample_text}
-                ```
-
-                Please provide line numbers (0-based index) for all text lines in the document that you think should be split points.
-                The answer format should be a simple list of numbers, for example:
-                ```
-                0
-                15
-                42
-                87
-                ```
-
-                Each number represents the start of a new chapter. Make sure to always include the first line (line 0).
-                """
+            split_prompt_template = _get_splitter_message("splitter.direct_split_prompt_template", {}, self.lang)
             split_prompt = split_prompt_template.format(sample_text=sample_text)
-            system_prompt_direct = self.locale.get("splitter.direct_split_system_prompt") if self.locale else "You are a professional document structure analysis assistant."
+            system_prompt_direct = _get_splitter_message("splitter.direct_split_system_prompt", {}, self.lang)
+            
             response = client.chat.completions.create(
                 model=model,
                 messages=[
@@ -814,20 +746,15 @@ class Splitter:
                 temperature=0.2
             )
             split_response = response.choices[0].message.content
-            if self.locale:
-                logger.debug(self.locale.get("splitter.llm_split_suggestions").format(suggestions=split_response))
-            else:
-                logger.debug(f"LLM split point suggestions: {split_response}")
+            logger.debug(_get_splitter_message("splitter.llm_split_suggestions", {"suggestions": split_response}, self.lang))
+            
             # 解析LLM提供的行号
             try:
                 # 提取所有数字
                 split_points = [int(line.strip()) for line in split_response.split('\n') 
                                if line.strip().isdigit()]
                 if len(split_points) >= 2:
-                    if self.locale:
-                        logger.info(self.locale.get("splitter.llm_provided_split_points").format(count=len(split_points)))
-                    else:
-                        logger.info(f"LLM provided {len(split_points)} split points")
+                    logger.info(_get_splitter_message("splitter.llm_provided_split_points", {"count": len(split_points)}, self.lang))
                     # 将文本拆分成行
                     lines = text.split('\n')
                     segments = []
@@ -841,29 +768,18 @@ class Splitter:
                             segment = '\n'.join(lines[start_line:end_line])
                             segments.append(segment)
                     if len(segments) >= 2:
-                        if self.locale:
-                            logger.info(self.locale.get("splitter.llm_split_points_success").format(count=len(segments)))
-                        else:
-                            logger.info(f"Successfully split into {len(segments)} sections using LLM-provided split points")
+                        logger.info(_get_splitter_message("splitter.llm_split_points_success", {"count": len(segments)}, self.lang))
                         return segments
             except Exception as e:
-                if self.locale:
-                    logger.warning(self.locale.get("splitter.parse_split_points_failed").format(error=str(e)))
-                else:
-                    logger.warning(f"Failed to parse LLM-provided split points: {str(e)}")
+                logger.warning(_get_splitter_message("splitter.parse_split_points_failed", {"error": str(e)}, self.lang))
+                
             # 彻底禁止回退到规则拆分或返回原文，直接抛异常
-            raise ValueError("LLM未能成功拆分文本")
+            raise ValueError(_get_splitter_message("splitter.llm_split_failed", {}, self.lang))
         except ImportError:
-            if self.locale:
-                logger.warning(self.locale.get("splitter.openai_import_error"))
-            else:
-                logger.warning("Using OpenAI SDK requires installing the openai package: pip install openai")
+            logger.warning(_get_splitter_message("splitter.openai_import_error", {}, self.lang))
             raise
         except Exception as e:
-            if self.locale:
-                logger.warning(self.locale.get("splitter.deepseek_api_error").format(error=str(e)))
-            else:
-                logger.warning(f"DeepSeek API call failed: {str(e)}")
+            logger.warning(_get_splitter_message("splitter.deepseek_api_error", {"error": str(e)}, self.lang))
             raise
     
     def _split_by_length(self, text: str, chunk_size: int, overlap_size: int) -> List[str]:

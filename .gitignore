@@ -51,6 +51,7 @@ input/
 output/
 workspace/
 resources/config/config.yaml
+docs/others/
 
 # Local development
 .DS_Store

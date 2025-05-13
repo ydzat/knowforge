@@ -1,0 +1,10 @@
+logloom:
+  language: "zh"  # 默认语言，可选 "zh" 或 "en"
+  log:
+    file: "./output/logs/knowforge.log"
+    console: true
+    level: "INFO"  # 日志级别: DEBUG, INFO, WARN, ERROR, FATAL
+    max_size: 10485760  # 单个日志文件最大大小 (10MB in bytes)
+    max_files: 5  # 保留的日志文件数量
+    format: "[{time}] [{level}] [{module}] {message}"  # 日志格式
+    time_format: "%Y-%m-%d %H:%M:%S"  # 时间格式

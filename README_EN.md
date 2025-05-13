@@ -15,12 +15,15 @@
 - **Memory Management System**: Context memory and retrieval through vectorization and ChromaDB
 - **AI-Generated Enhancement**: Generate summaries and note content using large language models, supporting multiple LLM interfaces
 - **Multiple Output Formats**: Support for Markdown, Jupyter Notebook, and PDF formats
+- **Advanced Logging System**: Integrated Logloom with multilingual log messages and automatic file rotation
 - **Multilingual Support**: Chinese and English interfaces
 - **Cross-platform Compatibility**: Support for Windows and Linux systems
 
 ## Development Progress
 
 Refer to the design document [06_ITER_KnowForge_EN.md](./docs/06_ITER_KnowForge_EN.md). Currently completed Iteration 2: Core functionality implementation, with major business function modules that can process basic inputs and generate system outputs.
+
+Latest milestone (May 13, 2025): Integration of the Logloom logging system, enhancing system reliability and internationalization support.
 
 ## Installation Guide
 
@@ -44,6 +47,9 @@ cd knowforge
 # Install dependencies
 pip install -r requirements.txt
 
+# Install Logloom
+pip install logloom
+
 # Set environment variables in conda environment
 # Linux/macOS
 export DEEPSEEK_API_KEY=your-api-key-here
@@ -64,6 +70,9 @@ source venv/bin/activate
 
 # Install dependencies
 pip install -r requirements.txt
+
+# Install Logloom
+pip install logloom
 ```
 
 ## Environment Configuration
@@ -153,6 +162,15 @@ pytest --cov=src tests/
 python scripts/llm_integration_check.py
 ```
 
+### Logging System (Logloom)
+
+The Logloom logging system is configured through the `resources/config/logloom_config.yaml` file and supports:
+
+- Multilingual log messages (Chinese/English)
+- Automatic file rotation to prevent log files from growing too large
+- Configurable log formats and levels
+- Console and file dual-channel output
+
 ## Troubleshooting
 
 ### EasyOCR Dependency Issues
@@ -162,6 +180,10 @@ python scripts/llm_integration_check.py
 ### WeasyPrint Dependency Issues
 - Linux: `apt-get install libpango1.0-dev libharfbuzz-dev libffi-dev`
 - Windows: Follow the [official guide](https://doc.courtbouillon.org/weasyprint/stable/first_steps.html#windows) to install GTK+
+
+### Logloom Issues
+- If you encounter "cannot resolve import logloom" errors, make sure logloom is installed: `pip install logloom`
+- Configuration file location error: Check that `resources/config/logloom_config.yaml` exists
 
 ## Project Structure
 
@@ -175,6 +197,12 @@ knowforge/
 │   ├── cli/                # CLI interface
 │   └── utils/              # Utility classes
 ├── resources/              # Static resources
+│   ├── config/             # Configuration files
+│   │   ├── config.yaml     # Main configuration
+│   │   └── logloom_config.yaml # Logloom configuration
+│   └── locales/            # Language resources
+│       ├── logloom_zh.yaml # Logloom Chinese resource
+│       └── logloom_en.yaml # Logloom English resource
 ├── tests/                  # Unit tests
 └── scripts/                # Tool scripts
 ```
