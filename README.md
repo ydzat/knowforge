@@ -15,12 +15,15 @@
 - **记忆管理系统**：通过向量化和ChromaDB实现上下文记忆和检索
 - **AI生成增强**：使用大语言模型生成摘要和笔记内容，支持多种LLM接口
 - **多格式输出**：支持Markdown、Jupyter Notebook、PDF格式
+- **高级日志系统**：集成Logloom，支持多语言日志消息和文件自动轮转
 - **多语言支持**：支持中文和英文界面
 - **跨平台兼容**：支持Windows和Linux系统
 
 ## 开发进度
 
 参考设计文档[06_ITER_KnowForge.md](./docs/06_ITER_KnowForge.md)，当前已完成迭代2：核心功能实现，实现主要业务功能模块，可处理基本输入并生成输出的系统。
+
+最新里程碑（2025年5月13日）：集成Logloom日志系统，提升了系统的可靠性和国际化支持。
 
 ## 安装指南
 
@@ -44,6 +47,9 @@ cd knowforge
 # 安装依赖
 pip install -r requirements.txt
 
+# 安装Logloom
+pip install logloom
+
 # 在conda环境中需要设置环境变量
 # Linux/macOS
 export DEEPSEEK_API_KEY=your-api-key-here
@@ -64,6 +70,9 @@ source venv/bin/activate
 
 # 安装依赖
 pip install -r requirements.txt
+
+# 安装Logloom
+pip install logloom
 ```
 
 ## 环境配置
@@ -153,6 +162,15 @@ pytest --cov=src tests/
 python scripts/llm_integration_check.py
 ```
 
+### 日志系统 (Logloom)
+
+Logloom日志系统通过配置文件 `resources/config/logloom_config.yaml` 进行设置，支持：
+
+- 多语言日志消息 (中/英)
+- 自动文件轮转，防止日志文件过大
+- 可配置的日志格式和级别
+- 控制台和文件双通道输出
+
 ## 常见问题解决
 
 ### EasyOCR依赖问题
@@ -162,6 +180,10 @@ python scripts/llm_integration_check.py
 ### WeasyPrint依赖问题
 - Linux: `apt-get install libpango1.0-dev libharfbuzz-dev libffi-dev`
 - Windows: 按照[官方指南](https://doc.courtbouillon.org/weasyprint/stable/first_steps.html#windows)安装GTK+
+
+### Logloom问题
+- 如果遇到"无法解析导入logloom"错误，请确认已安装logloom：`pip install logloom`
+- 配置文件位置错误：检查 `resources/config/logloom_config.yaml` 是否存在
 
 ## 项目结构
 
@@ -175,6 +197,12 @@ knowforge/
 │   ├── cli/                # CLI界面
 │   └── utils/              # 工具类
 ├── resources/              # 静态资源
+│   ├── config/             # 配置文件
+│   │   ├── config.yaml     # 主配置文件
+│   │   └── logloom_config.yaml # Logloom配置
+│   └── locales/            # 语言资源
+│       ├── logloom_zh.yaml # Logloom中文资源
+│       └── logloom_en.yaml # Logloom英文资源
 ├── tests/                  # 单元测试
 └── scripts/                # 工具脚本
 ```

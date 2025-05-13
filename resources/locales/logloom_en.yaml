@@ -1,0 +1,38 @@
+# Logloom English Language Resource File
+welcome: "Welcome to KnowForge"
+goodbye: "Thank you for using KnowForge, goodbye"
+
+# System Messages
+system:
+  start: "System starting"
+  shutdown: "System shutting down"
+  error: "Error occurred: {message}"
+  warning: "Warning: {message}"
+
+# Process Related
+process:
+  start: "Processing started"
+  complete: "Processing completed"
+  file: "Processing file: {filename}"
+  progress: "Current progress: {percent}%"
+
+# Input Processing
+input:
+  read_file: "Reading file: {path}"
+  parse_text: "Parsing text content"
+  extract_code: "Extracting code: {language}"
+  ocr_image: "OCR processing image: {path}"
+  web_fetch: "Fetching web content: {url}"
+
+# Output Related
+output:
+  generate_markdown: "Generating Markdown file: {path}"
+  generate_notebook: "Generating Notebook file: {path}"
+  generate_pdf: "Generating PDF file: {path}"
+  write_complete: "Write completed: {path}"
+
+# Memory Management
+memory:
+  store: "Storing memory: {key}"
+  retrieve: "Retrieving memory: {key}"
+  similarity: "Found similarity: {score}%"

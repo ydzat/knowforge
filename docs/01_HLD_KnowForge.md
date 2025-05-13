@@ -2,7 +2,7 @@
  * @Author: @ydzat
  * @Date: 2025-04-28 15:31:28
  * @LastEditors: @ydzat
- * @LastEditTime: 2025-04-28 16:27:33
+ * @LastEditTime: 2025-05-13 20:30:00
  * @Description: 高阶设计文档
 -->
 # KnowForge: AI助力学习笔记生成器 设计文档
@@ -58,8 +58,27 @@
 | CLI控制器 | Typer |
 | 打包发布 | PyInstaller |
 | 安全管理 | python-dotenv |
-| 日志系统 | logging |
+| 日志系统 | Logloom |
 | 异常处理 | 自定义异常类组 |
+
+---
+
+## 里程碑
+
+### 2025年5月13日 - 集成Logloom日志系统
+
+- 替换原有基础日志系统，集成Logloom提供高级日志功能
+- 支持多语言日志消息，实现更灵活的国际化支持
+- 添加日志文件自动轮转功能，防止日志文件过大
+- 优化日志格式，统一使用`[时间][级别][模块名称]消息内容`格式
+- 通过YAML配置文件提供集中化日志配置
+
+主要改进：
+- 使用`Logloom`替代标准库`logging`作为日志底层实现
+- 移除自定义Logger包装类，直接使用Logloom原生API
+- 添加语言资源文件支持，实现日志消息本地化
+- 统一日志输出渠道和格式控制
+- 完善测试用例，确保日志系统在不同环境下稳定运行
 
 ---
 
@@ -114,9 +133,12 @@ knowforge/
 │   ├── config/
 │   │   ├── config.yaml            # 系统基础配置文件
 │   │   ├── llm_profiles.yaml      # LLM模型参数配置
+│   │   ├── logloom_config.yaml    # Logloom日志系统配置
 │   ├── locales/
 │   │   ├── en.yaml                # 英文界面语言包
-│   │   └── zh.yaml                # 中文界面语言包
+│   │   ├── zh.yaml                # 中文界面语言包
+│   │   ├── logloom_en.yaml        # Logloom英文语言包
+│   │   └── logloom_zh.yaml        # Logloom中文语言包
 │   ├── templates/
 │   │   ├── note_template.md       # 笔记正文模板
 │   │   └── system_prompts.yaml    # 交互提示模板
@@ -125,10 +147,12 @@ knowforge/
 │   ├── test_processor.py
 │   ├── test_embedder.py
 │   ├── test_output_writer.py
-│   └── test_memory_manager.py
+│   ├── test_memory_manager.py
+│   └── test_logger.py            # 日志系统测试
 ├── scripts/                # 工具脚本目录
 │   ├── clean_workspace.py
 │   ├── rebuild_memory.py
+│   ├── llm_integration_check.py  # LLM集成检查脚本
 │   └── export_config_docs.py
 ├── gen_notes.py            # Typer CLI入口文件
 ├── requirements.txt
@@ -318,6 +342,127 @@ from utils.logger import setup_logger
 logger = setup_logger()
 logger.info("程序启动")
 ```
+
+---
+
+## 日志系统：Logloom集成设计
+
+### 目标
+
+- 通过集成Logloom提供高级日志功能，取代基础日志系统
+- 支持多语言日志消息，实现更灵活的国际化支持
+- 添加日志文件自动轮转功能，防止日志文件过大
+- 提供统一的日志格式和管理机制
+- 简化日志接口，提高开发体验
+
+### Logloom日志系统概览
+
+Logloom是一个专为KnowForge设计的高级日志系统，提供以下核心功能：
+
+- **多级别日志**：支持DEBUG、INFO、WARNING/WARN、ERROR、CRITICAL/FATAL级别
+- **多语言支持**：通过语言资源文件支持日志消息国际化
+- **自动文件轮转**：基于大小自动轮转日志文件，防止无限增长
+- **并发安全**：支持多线程/多进程安全写入
+- **双通道输出**：同时支持控制台和文件输出，可独立配置
+
+### 配置文件结构
+
+Logloom通过`resources/config/logloom_config.yaml`进行配置：
+
+```yaml
+logloom:
+  language: "zh"  # 默认语言，可选 "zh" 或 "en"
+  log:
+    file: "./output/logs/knowforge.log"  # 日志文件路径
+    console: true                        # 是否输出到控制台
+    level: "INFO"                        # 日志级别
+    max_size: 10485760                   # 单文件最大限制(10MB)
+    max_files: 5                         # 保留的历史日志文件数
+    format: "[{time}] [{level}] [{module}] {message}"  # 日志格式
+    time_format: "%Y-%m-%d %H:%M:%S"                   # 时间格式
+```
+
+### 语言资源文件
+
+Logloom使用YAML格式的语言资源文件支持国际化：
+
+- `resources/locales/logloom_zh.yaml` - 中文日志消息
+- `resources/locales/logloom_en.yaml` - 英文日志消息
+
+示例资源文件结构：
+
+```yaml
+# Logloom 中文语言资源文件
+welcome: "欢迎使用 KnowForge"
+goodbye: "感谢使用 KnowForge，再见"
+
+system:
+  start: "系统启动"
+  shutdown: "系统关闭"
+  error: "发生错误: {message}"
+  
+process:
+  start: "开始处理"
+  complete: "处理完成"
+  file: "处理文件: {filename}"
+```
+
+### 核心API使用
+
+```python
+# 初始化日志系统
+from src.utils.logger import setup_logger
+
+# 配置并获取日志记录器
+logger = setup_logger(log_dir="output/logs", log_level="INFO")
+
+# 记录不同级别的日志
+logger.debug("调试信息")
+logger.info("常规信息")
+logger.warning("警告信息") 
+logger.error("错误信息")
+
+# 使用多语言格式化功能
+from logloom import get_text, format_text
+
+# 获取语言键对应的本地化文本
+welcome_text = get_text("welcome") 
+logger.info(welcome_text)  # 输出："欢迎使用 KnowForge"
+
+# 格式化带参数的本地化文本
+formatted_text = format_text("process.file", filename="data.pdf")
+logger.info(formatted_text)  # 输出："处理文件: data.pdf"
+```
+
+### 模块化日志使用
+
+通过`get_module_logger`可以获得带模块前缀的日志记录器：
+
+```python
+from src.utils.logger import get_module_logger
+
+# 创建模块专用日志记录器
+logger = get_module_logger("input_handler")
+
+# 记录日志（会自动带上模块前缀）
+logger.info("读取文件完成")
+# 输出：[2025-05-13 20:30:00][INFO][knowforge.input_handler] 读取文件完成
+```
+
+### 集成优势
+
+1. **统一格式**：所有模块使用一致的日志格式，便于检索和分析
+2. **国际化支持**：日志消息可根据系统语言设置自动切换
+3. **轮转管理**：无需手动管理日志文件大小和归档
+4. **异常安全**：内置错误处理机制，日志系统异常不会导致应用崩溃
+5. **框架独立**：可在CLI模式和库模式下一致使用
+6. **灵活配置**：通过配置文件集中管理日志行为
+
+### 版本历史
+
+- **v1.0** - 基础版本，使用Python标准库logging
+- **v1.1** - 集成Logloom，增强多语言和文件管理能力
+- **v1.2** - 完善测试用例，增加友好的API接口
 
 ---
 
@@ -588,7 +733,7 @@ splitter:
   llm_provider: "deepseek"
 ```
 
-chunk\_size 控制单片最大长度，overlap\_size 控制片段间重叠，帮助保持上下文连续性。use_llm 控制是否启用LLM辅助拆分（默认开启），llm_provider 指定使用的LLM提供商。
+chunk\_size 控制单片最大长度，overlap\_size 控制片段间重叠，帮助保持上下文连续性。use\_llm 控制是否启用LLM辅助拆分（默认开启），llm\_provider 指定使用的LLM提供商。
 
 ### 向量存储与检索模块（memory\_manager.py）设计
 
@@ -909,6 +1054,7 @@ cli:
 | 记忆管理  | test\_memory\_manager.py | 向量存取与相似性检索准确性           |
 | LLM调用 | test\_llm\_caller.py     | Prompt构建与调用异常处理         |
 | 输出生成  | test\_output\_writer.py  | Markdown/ipynb/pdf生成正确性 |
+| 日志系统  | test\_logger.py          | 日志输出、格式、轮转策略测试        |
 
 #### 测试框架
 
@@ -936,6 +1082,7 @@ def test_scan_inputs(tmp_path):
 | ----------------------- | ---------------------- |
 | clean\_workspace.py     | 清理workspace/下所有中间文件与缓存 |
 | rebuild\_memory.py      | 重新提取文本并重建ChromaDB向量数据库 |
+| llm\_integration\_check.py  | 检查LLM集成状态与可用性      |
 | export\_config\_docs.py | 导出当前生效配置，生成markdown文档  |
 
 #### 示例：clean\_workspace.py
@@ -1032,6 +1179,7 @@ if __name__ == "__main__":
 【辅助流程】
 - [scripts/clean_workspace.py] → 清理缓存
 - [scripts/rebuild_memory.py] → 记忆重建
+- [scripts/export_config_docs.py] → 配置文档导出
 - [tests/*] → 单元测试保障各模块稳定
 ```
 
@@ -1044,6 +1192,6 @@ if __name__ == "__main__":
 - **异常与日志统一**：确保程序在各类异常下稳定运行，日志可溯源。
 - **记忆管理智能化**：处理大文档、支持上下文记忆检索，提升生成连贯性。
 - **双接口支持（CLI+Library）**：兼顾命令行用户与开发者集成需求。
-- **测试与工具完善**：提供标准化测试用例与运维辅助脚本。
+- **测试与工具完善**：提供标准化测试用例与运维辅助脚本
 
 

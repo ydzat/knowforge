@@ -19,20 +19,21 @@ Intended audience: Project managers, developers, testers
 
 ## 2. Project Iteration Overview
 
-KnowForge will follow agile methodology with 4 main iterations over ~8 weeks:
+KnowForge will follow agile methodology with 5 main iterations over ~8 weeks:
 
-| Iteration | Main Goals | Deliverables |
+| Iteration Phase | Main Objectives | Deliverables |
 |:-----|:-----|:-----|
-| Iteration 1: Framework Setup | Establish project structure, implement core utilities | Runnable project skeleton |
-| Iteration 2: Core Features | Implement main business modules | System that processes basic input and generates output |
-| Iteration 3: Advanced Features | Implement memory management, multi-format output, optimizations | Fully functional system |
-| Iteration 4: Testing & Release | Comprehensive testing, bug fixes, release preparation | Production-ready version |
+| Iteration 1: Basic Framework Construction | Build project foundation, implement core utilities | Runnable project skeleton |
+| Iteration 2: Core Functionality Implementation | Implement main business modules | System capable of basic input processing and output generation |
+| Iteration 3: Logloom Logging System Integration | Upgrade logging system, implement advanced logging and internationalization | Enhanced logging and internationalization support system |
+| Iteration 4: Advanced Features and Optimization | Implement memory management, multi-format output, optimize performance | Feature-complete system |
+| Iteration 5: Testing and Release Preparation | Comprehensive testing, bug fixing, release preparation | Releasable product version |
 
 ---
 
 ## 3. Detailed Iteration Plan
 
-### Iteration 1: Framework Setup
+### Iteration 1: Basic Framework Construction
 
 #### Tasks:
 
@@ -68,7 +69,7 @@ KnowForge will follow agile methodology with 4 main iterations over ~8 weeks:
 
 ---
 
-### Iteration 2: Core Features
+### Iteration 2: Core Functionality Implementation
 
 #### Tasks:
 
@@ -103,7 +104,44 @@ KnowForge will follow agile methodology with 4 main iterations over ~8 weeks:
 
 ---
 
-### Iteration 3: Advanced Features
+### Iteration 3: Logloom Logging System Integration
+
+#### Tasks:
+
+1. **Logging System Upgrade**
+   - Integrate Logloom logging system
+   - Implement asynchronous logging and batch upload
+   - Configure log rotation and management
+   - Update existing log calls to use the Logloom API
+
+2. **Internationalization Support**
+   - Implement multilingual support for log messages
+   - Automatically switch log language based on user preferences
+   - Ensure consistent internationalization across the application
+
+3. **Log Query and Analysis Tools**
+   - Provide basic log query interfaces
+   - Support filtering logs by time, level, and keywords
+   - Implement simple log analysis and statistics functionality
+
+4. **Documentation and Examples**
+   - Update API documentation with logging module usage instructions
+   - Provide examples for logging system configuration and usage
+   - Create migration guide from old logging system to Logloom
+
+#### Milestone:
+- Complete integration and validation of the Logloom logging system
+- Basic log query and analysis capabilities
+- Updated API documentation and usage examples
+
+#### Acceptance Criteria:
+- Logging system runs stably with no significant performance degradation
+- Correctly outputs log messages in at least two languages
+- Query interfaces correctly return log information
+
+---
+
+### Iteration 4: Advanced Features and Optimization
 
 #### Tasks:
 
@@ -140,7 +178,7 @@ KnowForge will follow agile methodology with 4 main iterations over ~8 weeks:
 
 ---
 
-### Iteration 4: Testing & Release
+### Iteration 5: Testing and Release Preparation
 
 #### Tasks:
 
