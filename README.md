@@ -2,7 +2,7 @@
 
 简体中文 | [English](README_EN.md)
 
-![版本](https://img.shields.io/badge/版本-0.1.2--beta-blue)
+![版本](https://img.shields.io/badge/版本-0.1.3--beta-blue)
 ![许可证](https://img.shields.io/badge/许可证-GPL--3.0-green)
 ![Python](https://img.shields.io/badge/Python-3.11+-yellow)
 
@@ -15,7 +15,7 @@
 - **记忆管理系统**：通过向量化和ChromaDB实现上下文记忆和检索
 - **AI生成增强**：使用大语言模型生成摘要和笔记内容，支持多种LLM接口
 - **多格式输出**：支持Markdown、Jupyter Notebook、PDF格式
-- **高级日志系统**：集成Logloom，支持多语言日志消息和文件自动轮转
+- **高级日志与国际化系统**：基于Logloom的全面国际化支持和日志系统
 - **多语言支持**：支持中文和英文界面
 - **跨平台兼容**：支持Windows和Linux系统
 
@@ -24,8 +24,9 @@
 参考设计文档[06_ITER_KnowForge.md](./docs/06_ITER_KnowForge.md)，当前已完成迭代2：核心功能实现，实现主要业务功能模块，可处理基本输入并生成输出的系统。
 
 最新里程碑：
-- **2025年5月14日**：向量记忆管理模块优化，修复了与ChromaDB API的兼容性问题，增强了混合检索策略，优化了阈值处理逻辑。
-- **2025年5月13日**：集成Logloom日志系统，提升了系统的可靠性和国际化支持。
+- **2025年5月14日 (v0.1.3)**：将LocaleManager完全迁移至Logloom，优化了国际化资源加载机制，实现了键名智能解析功能。
+- **2025年5月14日 (v0.1.2)**：向量记忆管理模块优化，修复了与ChromaDB API的兼容性问题，增强了混合检索策略。
+- **2025年5月13日 (v0.1.1)**：集成Logloom日志系统，提升了系统的可靠性和国际化支持。
 
 完整开发路线图请查看[08_ROADMAP_KnowForge.md](./docs/08_ROADMAP_KnowForge.md)。
 
@@ -51,7 +52,7 @@ cd knowforge
 # 安装依赖
 pip install -r requirements.txt
 
-# 安装Logloom
+# 安装最新版Logloom（必需）
 pip install logloom
 
 # 在conda环境中需要设置环境变量
@@ -75,7 +76,7 @@ source venv/bin/activate
 # 安装依赖
 pip install -r requirements.txt
 
-# 安装Logloom
+# 安装最新版Logloom（必需）
 pip install logloom
 ```
 
@@ -144,7 +145,7 @@ output/
 
 ## 开发进度
 
-当前项目处于迭代3（高级功能与优化阶段）开发中，正在实现记忆管理、多格式输出支持和高级输入处理功能。
+当前项目处于迭代3（高级功能与优化阶段）开发中，已经完成了国际化系统的全面升级，下一步将重点实现OCR功能和多格式输出支持。
 详细的版本历史和计划请查看[更新日志](CHANGELOG.md)和[开发路线图](docs/08_ROADMAP_KnowForge.md)。
 
 ## 开发指南
@@ -166,14 +167,32 @@ pytest --cov=src tests/
 python scripts/llm_integration_check.py
 ```
 
-### 日志系统 (Logloom)
+### 国际化与日志系统 (Logloom)
 
-Logloom日志系统通过配置文件 `resources/config/logloom_config.yaml` 进行设置，支持：
+项目现已完全迁移至Logloom进行国际化和日志管理。Logloom提供了以下功能：
 
-- 多语言日志消息 (中/英)
-- 自动文件轮转，防止日志文件过大
-- 可配置的日志格式和级别
-- 控制台和文件双通道输出
+- **统一国际化API**：使用`get_text`和`format_text`获取翻译
+- **动态资源加载**：支持`register_locale_file`和`register_locale_directory`动态加载语言资源
+- **多语言支持**：完整支持中英文界面和日志消息
+- **智能键名解析**：处理多种键名格式，简化开发过程
+- **自动日志文件轮转**：防止日志文件过大
+- **可配置的日志格式和级别**：通过`resources/config/logloom_config.yaml`进行设置
+
+新代码应直接使用Logloom API而非LocaleManager（LocaleManager现为过渡层）：
+
+```python
+# 推荐方式（直接使用Logloom）
+from logloom import get_text, format_text
+
+welcome = get_text("welcome")
+error = format_text("system.error", message="发生错误")
+
+# 过渡方式（使用LocaleManager作为Logloom封装）
+from src.utils.locale_manager import LocaleManager
+locale = LocaleManager("resources/locales")
+welcome = locale.get("welcome")
+error = locale.format("system.error", {"message": "发生错误"})
+```
 
 ## 常见问题解决
 
@@ -186,8 +205,10 @@ Logloom日志系统通过配置文件 `resources/config/logloom_config.yaml` 进
 - Windows: 按照[官方指南](https://doc.courtbouillon.org/weasyprint/stable/first_steps.html#windows)安装GTK+
 
 ### Logloom问题
-- 如果遇到"无法解析导入logloom"错误，请确认已安装logloom：`pip install logloom`
-- 配置文件位置错误：检查 `resources/config/logloom_config.yaml` 是否存在
+- 项目需要最新版本Logloom，确保使用`pip install logloom`安装了最新版本
+- 如果遇到键名格式问题，请检查使用方式是否正确（详见开发指南）
+- 配置文件位置应为`resources/config/logloom_config.yaml`
+- 语言资源目录应为`resources/locales/`
 
 ## 项目结构
 
@@ -200,11 +221,15 @@ knowforge/
 │   ├── note_generator/     # 核心逻辑模块
 │   ├── cli/                # CLI界面
 │   └── utils/              # 工具类
+│       ├── locale_manager.py # Logloom封装（过渡层）
+│       └── logger.py       # 日志系统
 ├── resources/              # 静态资源
 │   ├── config/             # 配置文件
 │   │   ├── config.yaml     # 主配置文件
 │   │   └── logloom_config.yaml # Logloom配置
 │   └── locales/            # 语言资源
+│       ├── zh.yaml         # 中文语言资源
+│       ├── en.yaml         # 英文语言资源
 │       ├── logloom_zh.yaml # Logloom中文资源
 │       └── logloom_en.yaml # Logloom英文资源
 ├── tests/                  # 单元测试

@@ -171,9 +171,10 @@ class Processor:
                 if fmt == "markdown":
                     path = self.output_writer.generate_markdown(split_segments, "notes")
                     output_paths["markdown"] = path
-                elif fmt == "ipynb":
+                elif fmt == "notebook" or fmt == "ipynb":
                     path = self.output_writer.generate_notebook(split_segments, "notes")
-                    output_paths["ipynb"] = path
+                    # 确保使用客户端请求的键名
+                    output_paths[fmt] = path
                 elif fmt == "pdf":
                     md_path = output_paths.get("markdown")
                     if not md_path:

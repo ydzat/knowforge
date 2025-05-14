@@ -170,6 +170,8 @@ class InputHandler:
 | scan\_inputs       | 无  | dict | 扫描并分类所有输入文件（返回dict，按类型分组） |
 | extract\_texts     | 无  | list | 提取纯文本片段（统一格式返回）           |
 | save\_preprocessed | 无  | None | 保存提取出的文本到预处理目录            |
+| extract_image_text | image_path: str | str | 从图片中提取文本（OCR） |
+| enhance_ocr_with_llm | text: str, image_context: str | str | 使用LLM增强OCR结果 |
 
 ## 输入输出规范
 
@@ -178,16 +180,51 @@ class InputHandler:
   - `scan_inputs()` 返回分类好的文件路径字典
   - `extract_texts()` 返回标准化文本列表
   - `save_preprocessed()` 保存提取文本到 `workspace/preprocessed/`
+  - `extract_image_text()` 返回图片OCR识别的文本
+  - `enhance_ocr_with_llm()` 返回经LLM增强的OCR文本
 
 ## 内部流程说明
 
 1. 遍历输入目录，根据文件夹/文件扩展名推断类别。
 2. 分类型调用处理器：
    - PDF → pdfplumber提取文本
-   - 图片 → easyocr识别
+   - 图片 → easyocr识别 + LLM增强
    - 链接 → requests+BeautifulSoup提取正文
    - 代码 → 直接读取文本（可选Pygments高亮）
 3. 提取出的文本标准化保存，供Splitter模块后续处理。
+
+### 图片OCR处理流程
+
+1. **基础OCR提取**：
+   - 使用EasyOCR库进行初步文本提取
+   - 支持中文、英文及公式识别
+   - 应用图像预处理提高识别准确率（去噪、对比度增强）
+
+2. **LLM增强处理**：
+   - 将OCR结果和相关上下文传递给LLM
+   - LLM根据语义理解进行纠错与补全
+   - 对识别质量不佳的区域进行智能推断
+   - 通过多轮迭代（如有必要）提高结果准确性
+
+3. **OCR配置管理**：
+   - 通过配置文件动态设置OCR语言支持
+   - 配置OCR识别阈值，平衡速度与准确性
+   - 提供图像预处理参数调整选项
+
+### OCR与LLM集成模式
+
+```
+[图片] → [图像预处理] → [EasyOCR识别] → [初步OCR结果]
+                                   ↓
+[相关上下文] → [准备LLM提示] → [LLM处理] → [增强OCR结果] 
+                                   ↓
+                        [后处理格式化] → [最终文本输出]
+```
+
+上下文使用规则：
+- 文件命名信息（如文件名包含章节信息）
+- 同目录/相关文件的内容片段
+- 图像的元数据（如尺寸、类型等特征）
 
 ---
 # 5. Splitter 模块
@@ -349,7 +386,7 @@ class MemoryManager:
 4. 查询结果处理:
    - 应用相似度阈值过滤
    - 格式化标准返回结构(id, text, similarity, metadata)
-   - 在hybrid模式下，若无匹配结果则自动回退到time_weighted策略
+   - 在hybrid模式下，若无匹配结果則自動回退到time_weighted策略
 5. 记忆库管理:
    - 支持记忆库统计、导入导出、重建
    - 根据清理策略(oldest, least_used, relevance)维护记忆库大小

@@ -2,13 +2,35 @@
  * @Author: @ydzat
  * @Date: 2025-04-29 01:30:33
  * @LastEditors: @ydzat
- * @LastEditTime: 2025-05-14 14:30:00
+ * @LastEditTime: 2025-05-14 22:45:00
  * @Description: 
 -->
 
 # Changelog
 
 This document records all major version updates and changes of the KnowForge project.
+
+## [0.1.3] - 2025-05-14
+
+### LocaleManager Migration to Logloom
+
+#### Improvements
+- Completely migrated LocaleManager to use Logloom's internationalization features
+- Leveraged new Logloom APIs including `register_locale_file` and `register_locale_directory`
+- Implemented intelligent key name resolution to handle various key formats
+- Added single instance pattern for safe function access
+- Enhanced error handling and fallback mechanisms
+- Updated all tests to verify proper Logloom integration
+
+#### Technical Debt Reduction
+- Removed all legacy implementation code and backup logic
+- Simplified the codebase by relying completely on Logloom
+- Improved maintainability by removing duplicate functionality
+
+#### Known Issues
+- Some key formatting issues may still exist with certain key patterns
+- Integration tests show possible recursive error in warning handling
+- Documentation needs to be updated to reflect the new API
 
 ## [0.1.2] - 2025-05-14
 
@@ -84,6 +106,28 @@ This document records all major version updates and changes of the KnowForge pro
 # 更新日志
 
 本文档记录KnowForge项目的所有重要版本更新和变更。
+
+## [0.1.3] - 2025-05-14
+
+### LocaleManager迁移至Logloom
+
+#### 改进
+- 完全迁移LocaleManager至Logloom国际化功能
+- 利用新的Logloom API，包括`register_locale_file`和`register_locale_directory`
+- 实现智能键名解析功能，处理各种键名格式
+- 添加单例模式以支持安全函数访问
+- 增强错误处理和回退机制
+- 更新所有测试，验证Logloom集成正常工作
+
+#### 技术债务减少
+- 移除所有遗留实现代码和备用逻辑
+- 通过完全依赖Logloom简化代码库
+- 通过移除重复功能提高可维护性
+
+#### 已知问题
+- 某些键格式可能仍存在格式化问题
+- 集成测试显示警告处理中可能存在递归错误
+- 文档需要更新以反映新的API
 
 ## [0.1.2] - 2025-05-14
 
