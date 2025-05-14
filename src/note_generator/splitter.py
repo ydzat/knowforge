@@ -154,7 +154,41 @@ class Splitter:
         # LLM配置 - 默认启用LLM辅助拆分
         self.use_llm = config.get("splitter.use_llm", True)  # 默认启用LLM
         self.llm_provider = config.get("llm.provider", "deepseek")
-        self.llm_api_key = config.get("llm.api_key", "")
+        
+        # 根据LLM提供商获取对应的API密钥和基础URL
+        import os
+        
+        # 定义API相关的映射表
+        api_mappings = {
+            "deepseek": {
+                "env_key": "DEEPSEEK_API_KEY",
+                "config_key": "llm.api_key",
+                "default_base_url": "https://api.deepseek.com",
+                "config_base_url_key": "llm.base_url"
+            },
+            "openai": {
+                "env_key": "OPENAI_API_KEY",
+                "config_key": "llm.openai_api_key",
+                "default_base_url": "https://api.openai.com/v1",
+                "config_base_url_key": "llm.openai_base_url"
+            },
+            # 可以在这里添加其他API提供商的映射
+        }
+        
+        # 根据当前提供商选择对应的API配置
+        provider_config = api_mappings.get(self.llm_provider.lower(), api_mappings["deepseek"])
+        
+        # 获取API密钥：先从环境变量中获取，如果没有则从配置文件中获取
+        self.llm_api_key = os.environ.get(provider_config["env_key"], "")
+        if not self.llm_api_key:
+            self.llm_api_key = config.get(provider_config["config_key"], "")
+        
+        # 获取API基础URL：先从配置中获取，如果没有则使用默认值
+        self.llm_base_url = config.get(provider_config["config_base_url_key"], provider_config["default_base_url"])
+        
+        # 记录获取到的API密钥状态（不记录密钥本身）
+        logger.debug(f"API key for provider '{self.llm_provider}': {'configured' if self.llm_api_key else 'not configured'}")
+        logger.debug(f"Base URL for provider '{self.llm_provider}': {self.llm_base_url}")
         
         # 自适应章节检测的参数
         self.min_headers_for_pattern = 2  # 降低识别模式所需的标题数量，使拆分更敏感
@@ -629,13 +663,10 @@ class Splitter:
         try:
             import openai
             
-            # 获取DeepSeek的基础URL
-            base_url = self.config.get("llm.base_url", "https://api.deepseek.com")
-            
-            # 创建OpenAI客户端，但使用DeepSeek的API密钥和URL
+            # 使用自动获取的基础URL
             client = openai.OpenAI(
                 api_key=self.llm_api_key,
-                base_url=base_url
+                base_url=self.llm_base_url
             )
             
             # 创建分析提示

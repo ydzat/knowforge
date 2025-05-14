@@ -92,10 +92,16 @@ class TestSplitter:
         assert overlap in text
     
     def test_complete_pipeline(self, splitter):
-        """测试完整的拆分流程（LLM未启用时应报错）"""
+        """测试完整的拆分流程（验证基于章节的拆分是否正常工作）"""
         test_texts = [
             "# 标题\n这是一段短文本，不需要拆分。",
             "# 第一章\n" + ("这是第一章内容。" * 50) + "\n# 第二章\n" + ("这是第二章内容。" * 50)
         ]
-        with pytest.raises(ValueError):
-            splitter.split_text(test_texts)
+        # 我们不再期望异常，而是期望成功拆分
+        result = splitter.split_text(test_texts)
+        
+        # 验证拆分结果
+        assert len(result) >= 3  # 至少包含3个片段：短文本 + 两个章节
+        assert "# 标题" in result[0]
+        assert "# 第一章" in result[1]
+        assert "# 第二章" in result[2]

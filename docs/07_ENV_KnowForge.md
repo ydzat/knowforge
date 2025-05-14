@@ -122,12 +122,35 @@ KnowForge项目的依赖分为几个主要类别：
 
 ## 4. 环境变量配置
 
-KnowForge使用`.env`文件存储敏感信息和环境特定配置。按照以下步骤设置：
+KnowForge使用环境变量来管理API密钥等敏感信息。**强烈建议**使用环境变量而非直接在配置文件中硬编码这些敏感信息。
+
+### 4.1 配置API密钥（推荐方式）
+
+**方法1：直接设置系统环境变量（更安全）**
+
+```bash
+# Linux/macOS
+export DEEPSEEK_API_KEY="your-api-key-here"
+
+# Windows (CMD)
+set DEEPSEEK_API_KEY=your-api-key-here
+
+# Windows (PowerShell)
+$env:DEEPSEEK_API_KEY="your-api-key-here"
+```
+
+这种方式更安全，API密钥不会被保存在任何文件中。对于持久化设置，您可以将上述命令添加到您的shell配置文件中（如`.bashrc`、`.zshrc`等）。
+
+**方法2：使用`.env`文件**
+
+如果您需要一个更便携的方式管理环境变量：
 
 1. **创建`.env`文件**:
-   - 复制提供的示例文件 `.env.example` 为 `.env`
+   - 在项目根目录创建`.env`文件
    ```bash
-   cp .env.example .env
+   touch .env
+   # 或对于Windows
+   echo. > .env
    ```
 
 2. **编辑`.env`文件**:
@@ -135,11 +158,27 @@ KnowForge使用`.env`文件存储敏感信息和环境特定配置。按照以�
    # DeepSeek API Key (必需)
    DEEPSEEK_API_KEY=your-api-key-here
    
+   # 如果您使用OpenAI API (可选)
+   # OPENAI_API_KEY=your-openai-key-here
+   
    # API基础URL (可选，使用默认值)
-   DEEPSEEK_API_BASE_URL=https://api.deepseek.com
+   # DEEPSEEK_API_BASE_URL=https://api.deepseek.com
    ```
 
-> **注意**: `.env` 文件包含敏感信息，已在 `.gitignore` 中排除，不会提交到代码仓库。
+> **安全提示**: 
+> - `.env` 文件包含敏感信息，已在 `.gitignore` 中排除，确保永远不要将其提交到代码仓库。
+> - 请妥善保管您的API密钥，不要在公共场合或共享环境中暴露它。
+> - 在生产环境中，优先使用系统环境变量或安全的密钥管理服务。
+
+### 4.2 密钥统一管理说明
+
+KnowForge设计为只需设置**一次**API密钥，即可在全部组件中使用。这是通过`ConfigLoader`实现的：
+
+- 系统优先从环境变量获取密钥
+- 所有需要LLM功能的组件都使用相同的方式获取密钥
+- 项目支持多种LLM提供商，会根据配置自动使用正确的环境变量
+
+例如，如果您设置了`DEEPSEEK_API_KEY`环境变量，那么从文本拆分器到笔记生成器的所有组件都会使用这个密钥，无需重复配置。
 
 ---
 

@@ -122,24 +122,63 @@ KnowForge dependencies are categorized as follows:
 
 ## 4. Environment Variables
 
-KnowForge uses `.env` file for sensitive information and environment-specific configuration:
+KnowForge uses environment variables to manage API keys and other sensitive information. It is **strongly recommended** to use environment variables rather than hardcoding sensitive information in configuration files.
 
-1. **Create `.env` file**:
-   - Copy provided `.env.example` to `.env`
+### 4.1 Configuring API Keys (Recommended Approach)
+
+**Method 1: Set System Environment Variables Directly (More Secure)**
+
+```bash
+# Linux/macOS
+export DEEPSEEK_API_KEY="your-api-key-here"
+
+# Windows (CMD)
+set DEEPSEEK_API_KEY=your-api-key-here
+
+# Windows (PowerShell)
+$env:DEEPSEEK_API_KEY="your-api-key-here"
+```
+
+This approach is more secure as API keys are not saved in any files. For persistent settings, you can add these commands to your shell configuration file (like `.bashrc`, `.zshrc`, etc.).
+
+**Method 2: Using a `.env` File**
+
+If you need a more portable way to manage environment variables:
+
+1. **Create a `.env` file**:
+   - Create a `.env` file in the project root directory
    ```bash
-   cp .env.example .env
+   touch .env
+   # or for Windows
+   echo. > .env
    ```
 
-2. **Edit `.env` file**:
+2. **Edit the `.env` file**:
    ```dotenv
    # DeepSeek API Key (required)
    DEEPSEEK_API_KEY=your-api-key-here
    
+   # If you're using OpenAI API (optional)
+   # OPENAI_API_KEY=your-openai-key-here
+   
    # API Base URL (optional, uses default)
-   DEEPSEEK_API_BASE_URL=https://api.deepseek.com
+   # DEEPSEEK_API_BASE_URL=https://api.deepseek.com
    ```
 
-> **Note**: `.env` contains sensitive info and is excluded in `.gitignore`.
+> **Security Tips**: 
+> - The `.env` file contains sensitive information and is excluded in `.gitignore`. Ensure you never commit it to code repositories.
+> - Keep your API keys secure and don't expose them in public places or shared environments.
+> - In production environments, prefer using system environment variables or secure key management services.
+
+### 4.2 Unified Key Management
+
+KnowForge is designed to require setting up API keys **only once** for use across all components. This is achieved through the `ConfigLoader`:
+
+- The system prioritizes getting keys from environment variables
+- All components that need LLM functionality use the same method to retrieve keys
+- The project supports multiple LLM providers and will automatically use the correct environment variables based on configuration
+
+For example, if you set the `DEEPSEEK_API_KEY` environment variable, all components from the text splitter to the note generator will use this key without requiring additional configuration.
 
 ---
 

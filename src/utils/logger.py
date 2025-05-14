@@ -171,13 +171,26 @@ def setup_logger(log_dir: str = "output/logs",
     # 获取主日志记录器
     logger = get_logger()
     
-    # 确保日志目录存在
+    # 确保日志目录存在 - 使用绝对路径以避免相对路径问题
     try:
+        # 确保使用绝对路径
+        log_dir = os.path.abspath(log_dir)
+        
+        # 强制创建日志目录
         os.makedirs(log_dir, exist_ok=True)
+        
+        # 构建完整的日志文件路径
         log_path = os.path.join(log_dir, log_name)
+        
+        # 确保父目录存在 - 双重检查
+        parent_dir = os.path.dirname(log_path)
+        if not os.path.exists(parent_dir):
+            os.makedirs(parent_dir, exist_ok=True)
+            
+        print(f"日志目录已创建: {log_dir}")  # 调试信息
     except Exception as e:
         print(f"创建日志目录失败: {str(e)}")
-        log_path = None
+        log_path = log_name  # 回退到当前目录
     
     if LOGLOOM_AVAILABLE and not HAS_INITIALIZED:
         try:
@@ -201,6 +214,14 @@ def setup_logger(log_dir: str = "output/logs",
                     # 初始化日志记录成功
                     logger.info(safe_get_text("welcome"))
                     
+                    # 设置日志文件
+                    if log_path:
+                        try:
+                            logger.set_file(log_path)
+                            print(f"Logloom日志文件设置为: {log_path}")  # 调试信息
+                        except Exception as e:
+                            print(f"设置Logloom日志文件失败: {str(e)}")
+                    
                 except Exception as e:
                     print(f"初始化Logloom失败: {str(e)}")
             else:
@@ -218,12 +239,16 @@ def setup_logger(log_dir: str = "output/logs",
         # 添加文件处理器
         if log_path and not any(isinstance(h, logging.FileHandler) for h in basic_logger.handlers):
             try:
-                file_handler = logging.FileHandler(log_path)
+                # 确保目录存在
+                os.makedirs(os.path.dirname(log_path), exist_ok=True)
+                
+                file_handler = logging.FileHandler(log_path, encoding='utf-8')
                 file_handler.setFormatter(logging.Formatter(
                     '[%(asctime)s] [%(levelname)s] [%(name)s] %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S'
                 ))
                 basic_logger.addHandler(file_handler)
+                print(f"日志文件创建成功: {log_path}")  # 调试信息
             except Exception as e:
                 print(f"添加文件处理器失败: {str(e)}")
         
