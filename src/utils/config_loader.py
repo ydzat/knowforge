@@ -103,6 +103,21 @@ class ConfigLoader:
         
         return value if value != {} else default
     
+    def get_section(self, section_path: str) -> Dict:
+        """
+        获取指定路径的配置部分
+        
+        Args:
+            section_path: 点分隔的配置路径，如 'memory.retrieval_strategy'
+            
+        Returns:
+            包含该部分所有配置的字典，如果不存在则返回空字典
+        """
+        result = self.get(section_path)
+        if isinstance(result, dict):
+            return result
+        return {}
+    
     def get_env(self, env_var: str, default: Optional[str] = None) -> Optional[str]:
         """
         获取环境变量

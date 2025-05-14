@@ -2,7 +2,7 @@
 
 简体中文 | [English](README_EN.md)
 
-![版本](https://img.shields.io/badge/版本-0.1.0--beta-blue)
+![版本](https://img.shields.io/badge/版本-0.1.2--beta-blue)
 ![许可证](https://img.shields.io/badge/许可证-GPL--3.0-green)
 ![Python](https://img.shields.io/badge/Python-3.11+-yellow)
 
@@ -23,7 +23,11 @@
 
 参考设计文档[06_ITER_KnowForge.md](./docs/06_ITER_KnowForge.md)，当前已完成迭代2：核心功能实现，实现主要业务功能模块，可处理基本输入并生成输出的系统。
 
-最新里程碑（2025年5月13日）：集成Logloom日志系统，提升了系统的可靠性和国际化支持。
+最新里程碑：
+- **2025年5月14日**：向量记忆管理模块优化，修复了与ChromaDB API的兼容性问题，增强了混合检索策略，优化了阈值处理逻辑。
+- **2025年5月13日**：集成Logloom日志系统，提升了系统的可靠性和国际化支持。
+
+完整开发路线图请查看[08_ROADMAP_KnowForge.md](./docs/08_ROADMAP_KnowForge.md)。
 
 ## 安装指南
 
@@ -141,7 +145,7 @@ output/
 ## 开发进度
 
 当前项目处于迭代3（高级功能与优化阶段）开发中，正在实现记忆管理、多格式输出支持和高级输入处理功能。
-详细的版本历史和计划请查看[更新日志](CHANGELOG.md)。
+详细的版本历史和计划请查看[更新日志](CHANGELOG.md)和[开发路线图](docs/08_ROADMAP_KnowForge.md)。
 
 ## 开发指南
 

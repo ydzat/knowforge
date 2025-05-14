@@ -2,13 +2,31 @@
  * @Author: @ydzat
  * @Date: 2025-04-29 01:30:33
  * @LastEditors: @ydzat
- * @LastEditTime: 2025-05-14 10:00:00
+ * @LastEditTime: 2025-05-14 14:30:00
  * @Description: 
 -->
 
 # Changelog
 
 This document records all major version updates and changes of the KnowForge project.
+
+## [0.1.2] - 2025-05-14
+
+### Vector Memory Management Enhancement
+
+#### Improvements
+- Fixed compatibility issues with ChromaDB's latest API in various retrieval methods
+- Enhanced the `_hybrid_retrieval` method with more robust fallback strategies
+- Added missing `_extract_keywords` and `_calculate_keyword_score` functions
+- Optimized threshold handling in retrieval methods to ensure results even with low similarity
+- Improved the balance between semantic similarity and keyword matching in hybrid retrieval
+- Added missing datetime and math module imports for time-based retrievals
+
+#### Bug Fixes
+- Fixed ChromaDB query API parameter issues in `_time_weighted_retrieval`
+- Fixed `_context_aware_retrieval` to properly handle combined embeddings
+- Resolved issues where hybrid retrieval would return no results
+- Ensured proper error handling for all retrieval methods
 
 ## [0.1.1] - 2025-05-13
 
@@ -66,6 +84,24 @@ This document records all major version updates and changes of the KnowForge pro
 # 更新日志
 
 本文档记录KnowForge项目的所有重要版本更新和变更。
+
+## [0.1.2] - 2025-05-14
+
+### 向量记忆管理优化
+
+#### 改进
+- 修复与ChromaDB最新API在各种检索方法中的兼容性问题
+- 增强`_hybrid_retrieval`方法，提供更强大的后备策略
+- 添加缺失的`_extract_keywords`和`_calculate_keyword_score`函数
+- 优化检索方法中的阈值处理，以确保即使在相似度较低的情况下也能得到结果
+- 改善混合检索中语义相似性与关键词匹配之间的平衡
+- 为基于时间的检索添加缺失的datetime和math模块导入
+
+#### Bug 修复
+- 修复`_time_weighted_retrieval`中ChromaDB查询API参数问题
+- 修复`_context_aware_retrieval`以正确处理组合嵌入
+- 解决混合检索返回空结果的问题
+- 确保所有检索方法的错误处理正常
 
 ## [0.1.1] - 2025-05-13
 

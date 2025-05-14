@@ -2,7 +2,7 @@
 
 [简体中文](README.md) | English
 
-![Version](https://img.shields.io/badge/version-0.1.0--beta-blue)
+![Version](https://img.shields.io/badge/version-0.1.2--beta-blue)
 ![License](https://img.shields.io/badge/license-GPL--3.0-green)
 ![Python](https://img.shields.io/badge/Python-3.11+-yellow)
 
@@ -23,7 +23,11 @@
 
 Refer to the design document [06_ITER_KnowForge_EN.md](./docs/06_ITER_KnowForge_EN.md). Currently completed Iteration 2: Core functionality implementation, with major business function modules that can process basic inputs and generate system outputs.
 
-Latest milestone (May 13, 2025): Integration of the Logloom logging system, enhancing system reliability and internationalization support.
+Latest milestones:
+- **May 14, 2025**: Vector Memory Management optimization, fixed compatibility issues with ChromaDB API, enhanced hybrid retrieval strategies, and optimized threshold handling logic.
+- **May 13, 2025**: Integration of the Logloom logging system, enhancing system reliability and internationalization support.
+
+For the complete development roadmap, please check [08_ROADMAP_KnowForge_EN.md](./docs/08_ROADMAP_KnowForge_EN.md).
 
 ## Installation Guide
 
@@ -141,7 +145,7 @@ output/
 ## Development Progress
 
 The project is currently in Iteration 3 (Advanced Features and Optimization) development, implementing memory management, multi-format output support, and advanced input processing capabilities.
-For detailed version history and plans, please check the [Changelog](CHANGELOG.md).
+For detailed version history and plans, please check the [Changelog](CHANGELOG.md) and [Development Roadmap](docs/08_ROADMAP_KnowForge_EN.md).
 
 ## Development Guide
 
