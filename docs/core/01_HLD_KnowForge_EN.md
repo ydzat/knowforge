@@ -33,6 +33,8 @@ Project Goals:
 
 ### Content Processing Flow
 1. Input analysis: Detect files/images/webpages/code
+   - Document Comprehensive Processing: Automatically recognize text, images, tables, and formulas in documents (see [Document Processing Design](../modules/document_processing/10_DocumentProcessingDesign_EN.md))
+   - OCR-LLM Integration: Enhance image recognition result quality (see [OCR-LLM Integration](../modules/ocr_llm/09_OCR_LLM_Integration_EN.md))
 2. Automatic splitting: Split large documents by chapters/sections
 3. Vectorization: Convert to embeddings using sentence-transformers
 4. Memory management: Save to ChromaDB

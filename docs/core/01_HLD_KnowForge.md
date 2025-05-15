@@ -33,6 +33,8 @@
 
 ### 内容处理流程
 1. 输入分析：检测文件/图片/网页/代码
+   - 文档综合处理：自动识别文档中的文本、图像、表格和公式（详见[文档处理设计](../modules/document_processing/10_DocumentProcessingDesign.md)）
+   - OCR-LLM集成：增强图像识别结果质量（详见[OCR-LLM集成](../modules/ocr_llm/09_OCR_LLM_Integration.md)）
 2. 自动拆分：根据章节/小节拆分大文档
 3. 向量化：用 sentence-transformers 转换成Embedding
 4. 记忆管理：保存到 ChromaDB
