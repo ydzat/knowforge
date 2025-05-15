@@ -1101,3 +1101,60 @@ class MemoryManager:
             return self.collection.count()
         except Exception:
             return 0
+
+    def _update_metadata_on_access(self, item_ids: List[str]) -> None:
+        """
+        更新被访问记忆项的元数据信息（访问计数和最后访问时间）
+        
+        Args:
+            item_ids: 被访问记忆项的ID列表
+            
+        Raises:
+            MemoryError: 更新元数据过程中出现异常
+        """
+        if not item_ids:
+            return
+            
+        try:
+            self.logger.debug(f"更新 {len(item_ids)} 个记忆项的访问统计")
+            
+            # 获取现有元数据
+            results = self.collection.get(
+                ids=item_ids,
+                include=["metadatas"]
+            )
+            
+            if not results or not results['metadatas']:
+                self.logger.warning(f"未找到指定ID的记忆项，无法更新访问统计: {item_ids}")
+                return
+                
+            metadatas = results['metadatas']
+            current_time = str(time.time())
+            updated_metadatas = []
+            
+            # 更新每个记忆项的访问计数和最后访问时间
+            for i, metadata in enumerate(metadatas):
+                item_id = item_ids[i] if i < len(item_ids) else None
+                if item_id and metadata:
+                    # 更新内存中的使用计数器
+                    self.usage_counter[item_id] = self.usage_counter.get(item_id, 0) + 1
+                    
+                    # 更新访问计数（字符串格式）
+                    access_count = int(metadata.get("access_count", "0")) + 1
+                    metadata["access_count"] = str(access_count)
+                    
+                    # 更新最后访问时间
+                    metadata["last_accessed"] = current_time
+                    updated_metadatas.append(metadata)
+            
+            # 批量更新元数据
+            if updated_metadatas:
+                self.collection.update(
+                    ids=item_ids[:len(updated_metadatas)],
+                    metadatas=updated_metadatas
+                )
+                self.logger.debug(f"成功更新 {len(updated_metadatas)} 个记忆项的访问统计")
+                
+        except Exception as e:
+            self.logger.error(f"更新记忆项访问统计失败: {str(e)}")
+            raise MemoryError(f"更新记忆项访问统计失败: {str(e)}")

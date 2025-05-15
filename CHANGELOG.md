@@ -2,13 +2,42 @@
  * @Author: @ydzat
  * @Date: 2025-04-29 01:30:33
  * @LastEditors: @ydzat
- * @LastEditTime: 2025-05-15 16:40:00
+ * @LastEditTime: 2025-05-16 10:30:00
  * @Description: 
 -->
 
 # Changelog
 
 This document records all major version updates and changes of the KnowForge project.
+
+## [0.1.5] - 2025-05-16
+
+### Advanced Memory Management System
+
+#### Features Added
+- Implemented `AdvancedMemoryManager` class with multi-tier memory architecture
+  - `ShortTermMemory`: Fast, temporary storage for recent interactions
+  - `WorkingMemory`: Active knowledge management with priority-based access
+  - `LongTermMemory`: Persistent storage with advanced retrieval capabilities
+- Developed dynamic memory management mechanisms
+  - Importance scoring algorithm based on content, usage and external factors
+  - Forgetting mechanism based on Ebbinghaus forgetting curve model
+  - Memory reinforcement for important knowledge items
+  - Context-aware retrieval with adaptive weights
+- Added integration interfaces for document processing and OCR-LLM modules
+- Implemented knowledge graph and association network capabilities
+
+#### Technical Details
+- Created comprehensive testing suite with 90+ test cases
+- Optimized retrieval performance with hybrid retrieval strategies
+- Implemented advanced configuration options for memory management behavior
+- Added detailed memory system statistics and diagnostics
+- Extended config.yaml with advanced memory management settings
+
+#### Documentation
+- Comprehensive design documentation in Chinese and English
+- Updated implementation roadmap with phased development approach
+- Added API reference with usage examples
 
 ## [0.1.4] - 2025-05-15
 

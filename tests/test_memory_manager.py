@@ -401,3 +401,54 @@ class TestMemoryManager:
             # 验证结果
             assert result is True
             assert not os.path.exists(temp_dir)  # 确认目录已被删除
+
+    @patch('src.note_generator.memory_manager.chromadb.PersistentClient')
+    def test_update_metadata_on_access(self, mock_chroma_client, mock_embedder, mock_chromadb_client):
+        """测试更新记忆项访问统计功能"""
+        mock_client, mock_collection = mock_chromadb_client
+        mock_chroma_client.return_value = mock_client
+        
+        # 设置模拟数据
+        test_ids = ["id1", "id2"]
+        test_metadatas = [
+            {"source": "test1", "timestamp": "1620000000", "access_count": "3"},
+            {"source": "test2", "timestamp": "1620000100", "access_count": "5"}
+        ]
+        
+        # 模拟get方法返回值
+        mock_collection.get.return_value = {
+            "metadatas": test_metadatas,
+            "ids": test_ids
+        }
+        
+        with tempfile.TemporaryDirectory() as temp_dir:
+            manager = MemoryManager(temp_dir, embedder=mock_embedder)
+            
+            # 调用被测试方法
+            manager._update_metadata_on_access(test_ids)
+            
+            # 验证get方法是否被正确调用
+            mock_collection.get.assert_called_with(ids=test_ids, include=["metadatas"])
+            
+            # 验证update方法是否被正确调用
+            assert mock_collection.update.called
+            
+            # 验证更新后的元数据
+            call_args = mock_collection.update.call_args
+            updated_ids = call_args[1]['ids']
+            updated_metadatas = call_args[1]['metadatas']
+            
+            # 验证ID是否匹配
+            assert updated_ids == test_ids
+            
+            # 验证访问计数是否增加
+            assert int(updated_metadatas[0]["access_count"]) == 4  # 3 + 1
+            assert int(updated_metadatas[1]["access_count"]) == 6  # 5 + 1
+            
+            # 验证最后访问时间是否已更新
+            assert "last_accessed" in updated_metadatas[0]
+            assert "last_accessed" in updated_metadatas[1]
+            
+            # 验证使用计数器是否更新
+            assert manager.usage_counter["id1"] == 1
+            assert manager.usage_counter["id2"] == 1

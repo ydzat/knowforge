@@ -350,8 +350,16 @@ class AdvancedOCRProcessor:
                 enhanced_text = self._postprocess_llm_result(enhanced_text)
                 
                 # 深度增强模式：知识库集成
-                if self.deep_enhancement and self.knowledge_enhanced_ocr:
-                    enhanced_text = self._apply_knowledge_enhancement(enhanced_text, context)
+                if self.deep_enhancement:
+                    if self.knowledge_enhanced_ocr:
+                        enhanced_text = self._apply_knowledge_enhancement(enhanced_text, context)
+                    
+                    # 使用高级记忆管理器进一步增强结果
+                    memory_result = self.use_memory_for_ocr_enhancement(enhanced_text, context)
+                    if memory_result and memory_result["enhanced"]:
+                        enhanced_text = memory_result["enhanced"]
+                        # 更新置信度指标
+                        high_conf_values.append(memory_result["confidence"])
             
             except Exception as e:
                 logger.error(format_text("advanced_ocr.llm_enhancement_failed", error=str(e)))
@@ -597,3 +605,61 @@ class AdvancedOCRProcessor:
         final_confidence = max(final_confidence, self.ocr_confidence_threshold)
         
         return final_confidence
+
+    def use_memory_for_ocr_enhancement(self, ocr_text: str, context: str) -> Dict[str, Any]:
+        """
+        使用高级记忆管理器增强OCR结果
+        
+        Args:
+            ocr_text: 待增强的OCR文本
+            context: 上下文信息
+            
+        Returns:
+            增强后的OCR结果字典
+        """
+        if not ocr_text:
+            logger.warning(get_text("advanced_ocr.no_text_for_memory_enhancement"))
+            return {
+                "original": ocr_text,
+                "enhanced": ocr_text,
+                "confidence": 0.0,
+                "references": []
+            }
+        
+        try:
+            from src.note_generator.advanced_memory_manager import AdvancedMemoryManager
+            
+            # 初始化高级记忆管理器
+            memory_config = self.config.get("memory", {})
+            memory_manager = AdvancedMemoryManager(
+                workspace_dir=self.workspace_dir,
+                config=memory_config
+            )
+            
+            logger.info(get_text("advanced_ocr.using_memory_enhancement"))
+            
+            # 使用记忆管理器增强OCR结果
+            enhanced_result = memory_manager.enhance_ocr_with_memory(ocr_text, context)
+            
+            logger.info(format_text("advanced_ocr.memory_enhancement_complete", 
+                                  confidence=enhanced_result["confidence"]))
+            
+            return enhanced_result
+            
+        except ImportError:
+            logger.warning(get_text("advanced_ocr.memory_module_not_available"))
+            return {
+                "original": ocr_text,
+                "enhanced": ocr_text,
+                "confidence": 0.5,
+                "references": []
+            }
+            
+        except Exception as e:
+            logger.error(format_text("advanced_ocr.memory_enhancement_failed", error=str(e)))
+            return {
+                "original": ocr_text,
+                "enhanced": ocr_text,
+                "confidence": 0.5,
+                "references": []
+            }

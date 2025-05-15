@@ -2,7 +2,7 @@
 
 简体中文 | [English](README_EN.md)
 
-![版本](https://img.shields.io/badge/版本-0.1.4--beta-blue)
+![版本](https://img.shields.io/badge/版本-0.1.6--beta-blue)
 ![许可证](https://img.shields.io/badge/许可证-GPL--3.0-green)
 ![Python](https://img.shields.io/badge/Python-3.11+-yellow)
 
@@ -14,16 +14,25 @@
 - **智能文本拆分**：根据章节/段落自动拆分大文档
 - **记忆管理系统**：通过向量化和ChromaDB实现上下文记忆和检索
 - **AI生成增强**：使用大语言模型生成摘要和笔记内容，支持多种LLM接口
+- **高级OCR处理**：结合LLM和知识库的OCR结果校正和增强
 - **多格式输出**：支持Markdown、Jupyter Notebook、PDF格式
 - **高级日志与国际化系统**：基于Logloom的全面国际化支持和日志系统
 - **多语言支持**：支持中文和英文界面
 - **跨平台兼容**：支持Windows和Linux系统
+
+## 即将推出的功能
+
+- **文档综合处理**：自动识别PDF中的文本、图像、表格和公式，并应用适当的处理方法
+- **表格与公式专项处理**：提供表格数据提取和数学公式转LaTeX的功能
+- **内容整合与格式保留**：确保在最终笔记中保留原始文档结构和格式
 
 ## 开发进度
 
 参考设计文档[06_ITER_KnowForge.md](./docs/06_ITER_KnowForge.md)，当前已完成迭代2（核心功能实现）与迭代3（Logloom日志系统集成），正在进行迭代4（高级功能与优化）的开发。
 
 最新里程碑：
+- **2025年5月15日 (v0.1.6)**：完善高级记忆管理系统，实现记忆访问统计更新、工作记忆优化和基于LLM的OCR结果校正功能。
+- **2025年5月15日 (v0.1.5)**：规划文档综合处理功能，设计DocumentAnalyzer、ContentExtractor等核心组件，准备开发PDF内容自动识别能力。
 - **2025年5月15日 (v0.1.4)**：实现OCR-LLM-知识库集成，开发了EmbeddingManager和LLMCaller模块，大幅提升了图像文本识别质量。
 - **2025年5月14日 (v0.1.3)**：将LocaleManager完全迁移至Logloom，优化了国际化资源加载机制，实现了键名智能解析功能。
 - **2025年5月14日 (v0.1.2)**：向量记忆管理模块优化，修复了与ChromaDB API的兼容性问题，增强了混合检索策略。
@@ -222,6 +231,12 @@ knowforge/
 ├── workspace/              # 中间缓存区
 ├── src/                    # 源代码
 │   ├── note_generator/     # 核心逻辑模块
+│   │   ├── advanced_memory_manager.py # 高级记忆管理系统
+│   │   ├── advanced_ocr_processor.py # 高级OCR处理器 
+│   │   ├── llm_caller.py   # LLM调用模块
+│   │   ├── document_analyzer.py # 文档分析器(规划中)
+│   │   ├── content_extractor.py # 内容提取器(规划中)
+│   │   └── content_processor.py # 内容处理器(规划中)
 │   ├── cli/                # CLI界面
 │   └── utils/              # 工具类
 │       ├── locale_manager.py # Logloom封装（过渡层）
