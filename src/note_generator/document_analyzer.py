@@ -14,6 +14,7 @@ from typing import List, Dict, Any, Tuple, Union, Optional
 from src.utils.logger import get_module_logger
 from src.utils.exceptions import InputError
 from src.note_generator.warning_monitor import warning_monitor
+from src.note_generator.enhanced_extractor import EnhancedImageExtractor
 
 
 class DocumentAnalyzer:
@@ -37,6 +38,12 @@ class DocumentAnalyzer:
         self.min_image_size = self.config.get("min_image_size", 100)  # 最小图像尺寸(像素)
         self.table_detection_threshold = self.config.get("table_detection_threshold", 0.7)  # 表格检测阈值
         self.formula_detection_enabled = self.config.get("formula_detection_enabled", True)  # 公式检测开关
+        
+        # 初始化增强型图像提取器
+        self.enhanced_extractor = EnhancedImageExtractor(
+            min_image_size=self.min_image_size,
+            config=self.config
+        )
         
         self.logger.info("DocumentAnalyzer初始化完成")
         
@@ -258,66 +265,143 @@ class DocumentAnalyzer:
             # 检查xref是否有效
             if xref <= 0 or not doc.xref_object(xref):
                 return None
-                
-            try:
-                # 获取图像数据
-                pix = fitz.Pixmap(doc, xref)
-            except Exception as e:
-                # 特别处理"not enough image data"错误
-                if "not enough image data" in str(e).lower():
-                    # 记录警告到监视器
-                    warning_monitor.add_not_enough_image_data_warning()
-                    # 记录到日志
-                    self.logger.warning(f"转换图像数据时出错: not enough image data")
-                    # 尝试跳过这个图像
-                    return None
-                # 其他错误重新抛出
-                raise
             
-            # 检查图像数据是否有效
-            if pix is None or pix.width <= 0 or pix.height <= 0:
-                return None
-                
-            # 检查图像尺寸
-            if pix.width < self.min_image_size or pix.height < self.min_image_size:
-                return None
+            # 使用增强型提取器尝试提取图像
+            img_array = self.enhanced_extractor.extract_from_xref(doc, xref)
             
-            # 转换为RGB格式（如果是CMYK）
-            if pix.n - pix.alpha > 3:
+            # 如果增强型提取器提取失败，尝试原始方法
+            if img_array is None:
                 try:
-                    pix = fitz.Pixmap(fitz.csRGB, pix)
+                    # 获取图像数据
+                    pix = fitz.Pixmap(doc, xref)
+                    
+                    # 检查图像数据是否有效
+                    if pix is None or pix.width < self.min_image_size or pix.height < self.min_image_size:
+                        return None
+                    
+                    # 转换为RGB格式（如果是CMYK）
+                    if pix.n - pix.alpha > 3:
+                        try:
+                            pix = fitz.Pixmap(fitz.csRGB, pix)
+                        except Exception as e:
+                            self.logger.warning(f"转换图像颜色空间时出错: {str(e)}")
+                            return None
+                    
+                    # 转换为numpy数组
+                    img_data = pix.tobytes()
+                    img = Image.frombytes("RGB", [pix.width, pix.height], img_data)
+                    img_array = np.array(img)
+                    
                 except Exception as e:
-                    self.logger.warning(f"转换图像颜色空间时出错: {str(e)}")
+                    error_msg = str(e)
+                    self.logger.warning(f"标准提取方法失败: {error_msg}")
+                    
+                    # 记录到警告监视器
+                    if "not enough image data" in error_msg.lower():
+                        warning_monitor.add_not_enough_image_data_warning(error_msg)
+                    else:
+                        warning_monitor.add_convert_image_error(error_msg)
+                    
                     return None
             
-            # 检查像素数据是否足够
-            if not pix.samples or len(pix.samples) < pix.width * pix.height:
-                self.logger.warning("图像数据不完整")
-                return None
-                
-            try:
-                # 转换为PIL图像对象
-                img_data = pix.tobytes()
-                img = Image.frombytes("RGB", [pix.width, pix.height], img_data)
-                
-                # 转换为numpy数组
-                img_array = np.array(img)
-                
-                return img_array
-            except Exception as e:
-                error_msg = str(e)
-                self.logger.warning(f"转换图像数据时出错: {error_msg}")
-                
-                # 记录到警告监视器
-                if "not enough image data" in error_msg.lower():
-                    warning_monitor.add_not_enough_image_data_warning(error_msg)
-                else:
-                    warning_monitor.add_convert_image_error(error_msg)
-                    
-                return None
+            return img_array
             
         except Exception as e:
-            self.logger.warning(f"提取图像数据时出错: {str(e)}")
+            error_msg = str(e)
+            self.logger.warning(f"提取图像数据时出错: {error_msg}")
+            
+            # 记录到警告监视器
+            if "not enough image data" in error_msg.lower():
+                warning_monitor.add_not_enough_image_data_warning(error_msg)
+            else:
+                warning_monitor.add_convert_image_error(error_msg)
+            
+            return None
+    
+    def _extract_image_advanced(self, doc, xref):
+        """
+        使用高级技术提取和修复PDF中的图像
+        
+        Args:
+            doc: PDF文档对象
+            xref: 图像引用号
+            
+        Returns:
+            提取的图像数据（修复后）
+        """
+        try:
+            # 尝试标准提取
+            img = None
+            
+            # 尝试直接提取方式1: 使用pix.tobytes()
+            try:
+                pix = fitz.Pixmap(doc, xref)
+                if pix and pix.width > 0 and pix.height > 0:
+                    img_data = pix.tobytes()
+                    img = Image.frombytes("RGB", [pix.width, pix.height], img_data)
+            except Exception as e:
+                self.logger.debug(f"方法1提取失败: {str(e)}")
+                
+            # 如果方法1失败，尝试直接提取方式2: 使用pix.samples
+            if img is None:
+                try:
+                    pix = fitz.Pixmap(doc, xref)
+                    if pix and pix.width > 0 and pix.height > 0 and pix.samples:
+                        mode = "RGBA" if pix.alpha else "RGB"
+                        img = Image.frombuffer(mode, [pix.width, pix.height], pix.samples,
+                                              "raw", mode, 0, 1)
+                except Exception as e:
+                    self.logger.debug(f"方法2提取失败: {str(e)}")
+                
+            # 如果直接提取方式都失败，尝试使用原始流数据
+            if img is None:
+                try:
+                    # 获取原始图像数据
+                    stream = doc.xref_stream(xref)
+                    if stream:
+                        # 检测格式
+                        if stream.startswith(b'\xff\xd8'):  # JPEG
+                            img = Image.open(io.BytesIO(stream))
+                        elif stream.startswith(b'\x89PNG'):  # PNG
+                            img = Image.open(io.BytesIO(stream))
+                except Exception as e:
+                    self.logger.debug(f"原始流提取失败: {str(e)}")
+            
+            # 如果图像提取成功，进行修复和增强
+            if img is not None:
+                # 转换为numpy数组处理
+                img_array = np.array(img)
+                
+                # 检查图像数据是否有效
+                if img_array.size == 0 or img_array.shape[0] == 0 or img_array.shape[1] == 0:
+                    warning_monitor.add_not_enough_image_data_warning("图像数据为空")
+                    return None
+                
+                # 基本图像增强
+                try:
+                    # 转换为BGR（OpenCV格式）
+                    if len(img_array.shape) == 3 and img_array.shape[2] >= 3:
+                        cv_img = cv2.cvtColor(img_array, cv2.COLOR_RGB2BGR)
+                        
+                        # 应用简单增强
+                        cv_img = cv2.GaussianBlur(cv_img, (3, 3), 0)
+                        cv_img = cv2.convertScaleAbs(cv_img, alpha=1.1, beta=10)
+                        
+                        # 转回RGB
+                        img_array = cv2.cvtColor(cv_img, cv2.COLOR_BGR2RGB)
+                except Exception as e:
+                    self.logger.debug(f"图像增强失败: {str(e)}")
+                
+                return img_array
+                
+            # 如果所有方法都失败，记录警告
+            warning_monitor.add_not_enough_image_data_warning("所有提取方法都失败")
+            return None
+            
+        except Exception as e:
+            error_msg = str(e)
+            self.logger.warning(f"高级图像提取失败: {error_msg}")
+            warning_monitor.add_convert_image_error(error_msg)
             return None
     
     def _get_image_rect(self, page, xref):
@@ -765,38 +849,8 @@ class DocumentAnalyzer:
         Returns:
             提取的图像数据（NumPy数组）或None
         """
-        try:
-            # 确保矩形区域有效
-            if rect[2] - rect[0] < self.min_image_size or rect[3] - rect[1] < self.min_image_size:
-                return None
-                
-            # 创建裁剪区域
-            clip_rect = fitz.Rect(rect)
-            
-            # 计算适当的缩放因子，确保图像质量
-            zoom = 2.0  # 默认缩放因子，提高清晰度
-            
-            # 从页面指定区域渲染图像
-            pix = page.get_pixmap(matrix=fitz.Matrix(zoom, zoom), clip=clip_rect)
-            
-            # 转换为NumPy数组
-            img_data = pix.tobytes()
-            img = Image.frombytes("RGB", [pix.width, pix.height], img_data)
-            img_array = np.array(img)
-            
-            return img_array
-            
-        except Exception as e:
-            error_msg = str(e)
-            self.logger.warning(f"从区域提取图像时出错: {error_msg}")
-            
-            # 记录到警告监视器
-            if "not enough image data" in error_msg.lower():
-                warning_monitor.add_not_enough_image_data_warning(error_msg)
-            else:
-                warning_monitor.add_extract_region_error(error_msg)
-                
-            return None
+        # 使用增强型提取器的区域提取方法
+        return self.enhanced_extractor.extract_from_region(page, rect)
     
     def _detect_additional_images(self, page, page_index, blocks):
         """
@@ -827,7 +881,7 @@ class DocumentAnalyzer:
                     
                     # 检查是否与已处理的图像重叠
                     already_extracted = any(
-                        b.get("type") == "image" and 
+                        b.get("type") == "image" and
                         b.get("page") == page_index + 1 and
                         self._rects_overlap(b.get("coordinates"), rect)
                         for b in blocks

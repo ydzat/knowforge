@@ -2,7 +2,7 @@
  * @Author: @ydzat
  * @Date: 2025-04-29 01:30:33
  * @LastEditors: @ydzat
- * @LastEditTime: 2025-05-16 10:30:00
+ * @LastEditTime: 2025-05-16 23:45:00
  * @Description: 
 -->
 
@@ -10,7 +10,38 @@
 
 This document records all major version updates and changes of the KnowForge project.
 
-## [0.1.5] - 2025-05-16
+## [0.1.6] - 2025-05-16
+
+### PDF Image Extraction and OCR Enhancement
+
+#### Features Added
+- Enhanced PDF image extraction with multi-method redundant strategy
+  - Implemented 3 extraction methods with automatic fallback mechanism
+  - Achieved 100% extraction success rate on test documents
+  - Added image quality verification and enhancement capabilities
+- Advanced OCR processing with LLM and memory system integration
+  - Developed `AdvancedOCRProcessor` with multi-stage processing pipeline
+  - Implemented LLM-based OCR result correction
+  - Integrated with `AdvancedMemoryManager` for knowledge-enhanced OCR
+  - Added confidence estimation algorithm combining multiple factors
+- Improved memory management system
+  - Implemented `_update_metadata_on_access` method for access statistics
+  - Enhanced working memory capacity management algorithm
+  - Added priority queue optimization for better performance
+
+#### Technical Details
+- Added comprehensive test suite for OCR-memory integration
+- Implemented transparent error handling for image extraction failures
+- Optimized image preprocessing for better OCR results
+- Added configurable OCR enhancement parameters
+- Updated configuration schema for OCR settings
+
+#### Documentation
+- Added detailed PDF extraction and OCR processing workflow documentation
+- Updated development roadmap with version 0.1.7 plans
+- Created integration guide for OCR-memory system
+
+## [0.1.5] - 2025-05-14
 
 ### Advanced Memory Management System
 
