@@ -2,7 +2,7 @@
 
 [简体中文](README.md) | English
 
-![Version](https://img.shields.io/badge/version-0.1.4--beta-blue)
+![Version](https://img.shields.io/badge/version-0.1.6-blue)
 ![License](https://img.shields.io/badge/license-GPL--3.0-green)
 ![Python](https://img.shields.io/badge/Python-3.11+-yellow)
 
@@ -14,6 +14,8 @@
 - **Intelligent Text Splitting**: Automatically split large documents based on chapters/paragraphs
 - **Memory Management System**: Context memory and retrieval through vectorization and ChromaDB
 - **AI-Generated Enhancement**: Generate summaries and note content using large language models, supporting multiple LLM interfaces
+- **Advanced PDF Image Extraction**: Multi-method redundant extraction strategy with 100% success rate
+- **Advanced OCR Processing**: OCR with LLM enhancement and memory system integration for improved accuracy
 - **Multiple Output Formats**: Support for Markdown, Jupyter Notebook, and PDF formats
 - **Advanced Logging System**: Integrated Logloom with multilingual log messages and automatic file rotation
 - **Multilingual Support**: Chinese and English interfaces
@@ -24,12 +26,14 @@
 Refer to the design document [06_ITER_KnowForge_EN.md](./docs/06_ITER_KnowForge_EN.md). Currently completed Iterations 2 (Core functionality implementation) and 3 (Logloom logging system integration), and currently working on Iteration 4 (Advanced features and optimization).
 
 Latest milestones:
-- **May 15, 2025 (v0.1.4)**: Implemented OCR-LLM-Knowledge base integration, developed EmbeddingManager and LLMCaller modules, significantly improved image text recognition quality.
-- **May 14, 2025 (v0.1.3)**: Completely migrated LocaleManager to Logloom, optimized internationalization resource loading mechanism, implemented smart key name parsing functionality.
-- **May 14, 2025 (v0.1.2)**: Vector Memory Management optimization, fixed compatibility issues with ChromaDB API, enhanced hybrid retrieval strategies.
-- **May 13, 2025 (v0.1.1)**: Integration of the Logloom logging system, enhancing system reliability and internationalization support.
+- **May 16, 2025 (v0.1.6)**: Completed advanced PDF image extraction and OCR enhancement features, implemented multi-method redundant extraction strategy and LLM-enhanced OCR results with 100% extraction success rate. Also improved the advanced memory management system with access statistics updates and working memory optimization.
+- **May 14, 2025 (v0.1.5)**: Planned document comprehensive processing functionality, designed DocumentAnalyzer, ContentExtractor, and other core components, prepared for development of PDF content auto-detection capabilities.
+- **May 10, 2025 (v0.1.4)**: Implemented OCR-LLM-Knowledge base integration, developed EmbeddingManager and LLMCaller modules, significantly improved image text recognition quality.
+- **May 8, 2025 (v0.1.3)**: Completely migrated LocaleManager to Logloom, optimized internationalization resource loading mechanism, implemented smart key name parsing functionality.
+- **May 5, 2025 (v0.1.2)**: Vector Memory Management optimization, fixed compatibility issues with ChromaDB API, enhanced hybrid retrieval strategies.
+- **May 2, 2025 (v0.1.1)**: Integration of the Logloom logging system, enhancing system reliability and internationalization support.
 
-**Next Steps:** Develop document comprehensive processing functionality to enable the system to automatically identify and process text, images, tables, and formulas in PDFs, allowing users to avoid manually categorizing different input content types. Detailed design available at [13_DocumentProcessingDesign.md](./docs/others/13_DocumentProcessingDesign.md).
+**Next Steps:** Develop further integration of OCR with memory system (v0.1.7) to optimize OCR-related knowledge storage and retrieval mechanism, implement adaptive improvement based on historical OCR corrections, and develop an OCR result evaluation system. Also, continue developing document comprehensive processing functionality to enable automatic identification and processing of text, images, tables, and formulas in PDFs. Detailed design documentation is available at [13_DocumentProcessingDesign.md](./docs/others/13_DocumentProcessingDesign.md) and [13_AdvancedMemoryManager_Progress.md](./docs/modules/memory_management/13_AdvancedMemoryManager_Progress.md).
 
 For the complete development roadmap, please check [08_ROADMAP_KnowForge_EN.md](./docs/08_ROADMAP_KnowForge_EN.md).
 

@@ -1,6 +1,6 @@
 {
   "name": "knowforge",
-  "version": "0.1.4",
+  "version": "0.1.6",
   "description": "KnowForge AI-based learning note generator",
   "main": "gen_notes.py",
   "author": "ydzat",

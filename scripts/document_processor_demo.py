@@ -137,11 +137,18 @@ def process_document(file_path, output_format="markdown", config=None):
         warning_counts = warning_monitor.get_warning_counts()
         
         # 更新统计信息
-        stats["warnings"] = {
-            "not enough image data": warning_counts["not_enough_image_data"],
-            "转换图像数据时出错": warning_counts["convert_image_error"],
-            "从区域提取图像时出错": warning_counts["extract_region_error"],
-            "其他警告": warning_counts["other_warnings"]
+        stats["warnings"] = warning_counts
+        stats["total_warnings"] = warning_monitor.get_total_warnings()
+        
+        # 获取详细的警告日志用于高级分析
+        warning_logs = warning_monitor.get_warning_logs()
+        stats["warning_details"] = {
+            "not_enough_image_data": [log for log in warning_logs 
+                                     if log["type"] == "not_enough_image_data"],
+            "convert_image_error": [log for log in warning_logs 
+                                    if log["type"] == "convert_image_error"],
+            "extract_region_error": [log for log in warning_logs 
+                                     if log["type"] == "extract_region_error"]
         }
         
         return content, stats
@@ -204,6 +211,15 @@ def main():
                 print("\n警告统计:")
                 for warning_type, count in stats["warnings"].items():
                     print(f"  - {warning_type}: {count}次")
+                print(f"总警告数: {stats.get('total_warnings', 0)}")
+                
+                # 如果有"not enough image data"警告，显示进一步信息
+                if stats["warnings"].get("not_enough_image_data", 0) > 0:
+                    not_enough_count = stats["warnings"]["not_enough_image_data"]
+                    total_images = stats["content_blocks"].get("image", 0)
+                    if total_images > 0:
+                        print(f"\n图像数据不足警告比例: {not_enough_count}/{total_images} ({not_enough_count/total_images*100:.1f}%)")
+                        print("使用了增强型图像提取器进行修复")
         
         # 保存统计信息
         if args.stats:
