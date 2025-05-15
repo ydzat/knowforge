@@ -2,7 +2,7 @@
 
 [简体中文](README.md) | English
 
-![Version](https://img.shields.io/badge/version-0.1.2--beta-blue)
+![Version](https://img.shields.io/badge/version-0.1.4--beta-blue)
 ![License](https://img.shields.io/badge/license-GPL--3.0-green)
 ![Python](https://img.shields.io/badge/Python-3.11+-yellow)
 
@@ -21,11 +21,15 @@
 
 ## Development Progress
 
-Refer to the design document [06_ITER_KnowForge_EN.md](./docs/06_ITER_KnowForge_EN.md). Currently completed Iteration 2: Core functionality implementation, with major business function modules that can process basic inputs and generate system outputs.
+Refer to the design document [06_ITER_KnowForge_EN.md](./docs/06_ITER_KnowForge_EN.md). Currently completed Iterations 2 (Core functionality implementation) and 3 (Logloom logging system integration), and currently working on Iteration 4 (Advanced features and optimization).
 
 Latest milestones:
-- **May 14, 2025**: Vector Memory Management optimization, fixed compatibility issues with ChromaDB API, enhanced hybrid retrieval strategies, and optimized threshold handling logic.
-- **May 13, 2025**: Integration of the Logloom logging system, enhancing system reliability and internationalization support.
+- **May 15, 2025 (v0.1.4)**: Implemented OCR-LLM-Knowledge base integration, developed EmbeddingManager and LLMCaller modules, significantly improved image text recognition quality.
+- **May 14, 2025 (v0.1.3)**: Completely migrated LocaleManager to Logloom, optimized internationalization resource loading mechanism, implemented smart key name parsing functionality.
+- **May 14, 2025 (v0.1.2)**: Vector Memory Management optimization, fixed compatibility issues with ChromaDB API, enhanced hybrid retrieval strategies.
+- **May 13, 2025 (v0.1.1)**: Integration of the Logloom logging system, enhancing system reliability and internationalization support.
+
+**Next Steps:** Develop document comprehensive processing functionality to enable the system to automatically identify and process text, images, tables, and formulas in PDFs, allowing users to avoid manually categorizing different input content types. Detailed design available at [13_DocumentProcessingDesign.md](./docs/others/13_DocumentProcessingDesign.md).
 
 For the complete development roadmap, please check [08_ROADMAP_KnowForge_EN.md](./docs/08_ROADMAP_KnowForge_EN.md).
 

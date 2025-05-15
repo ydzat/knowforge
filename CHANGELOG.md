@@ -12,6 +12,15 @@ This document records all major version updates and changes of the KnowForge pro
 
 ## [0.1.4] - 2025-05-15
 
+### Documentation Structure Reorganization
+
+#### Changes Made
+- Reorganized documentation into a modular structure with specialized directories
+- Created dedicated folders for core design documents and module-specific documentation
+- Added comprehensive README files for improved navigation
+- Separated KnowForge and Logloom documentation
+- Full details available in [docs/DOC_STRUCTURE_UPDATE.md](./docs/DOC_STRUCTURE_UPDATE.md)
+
 ### OCR-LLM-Knowledge Base Integration
 
 #### Features Added
