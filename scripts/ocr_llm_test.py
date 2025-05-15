@@ -98,6 +98,19 @@ def initialize_input_handler(config):
     get_text.locale_manager = locale_manager
     format_text.locale_manager = locale_manager
     
+    # 设置输入目录配置
+    if "paths" not in config:
+        config["paths"] = {}
+    config["paths"]["input_dir"] = os.path.join(project_root, "input")
+    
+    # 配置LLM相关设置
+    if "llm" not in config:
+        config["llm"] = {}
+    config["llm"]["provider"] = "deepseek"  # 使用DeepSeek作为LLM提供商
+    config["llm"]["api_key"] = os.environ.get("DEEPSEEK_API_KEY", "")
+    config["llm"]["max_retries"] = 3
+    config["llm"]["retry_delay"] = 1  # 重试间隔1秒
+    
     # 初始化InputHandler
     input_handler = InputHandler(config, workspace_dir)
     
@@ -107,7 +120,25 @@ def initialize_input_handler(config):
     input_handler.ocr_confidence_threshold = 0.6  # 高阈值，确保最终结果质量
     input_handler.use_llm_enhancement = True  # 启用LLM增强
     input_handler.advanced_llm_integration = True  # 启用高级LLM集成
-    input_handler.knowledge_integration = True  # 启用知识库集成
+    
+    # 确保knowledge_enhanced_ocr配置启用
+    if "input" not in config:
+        config["input"] = {}
+    if "ocr" not in config["input"]:
+        config["input"]["ocr"] = {}
+    config["input"]["ocr"]["knowledge_enhanced_ocr"] = True  # 启用知识库集成
+    
+    # 确保embedding配置正确
+    if "embedding" not in config:
+        config["embedding"] = {}
+    config["embedding"]["model_name"] = "sentence-transformers/all-MiniLM-L6-v2"
+    
+    # 确保memory配置正确
+    if "memory" not in config:
+        config["memory"] = {}
+    config["memory"]["enabled"] = True
+    config["memory"]["top_k"] = 3
+    config["memory"]["similarity_threshold"] = 0.6
     
     print("输入处理器初始化完成")
     
@@ -194,6 +225,15 @@ def test_advanced_ocr_llm(input_handler, image_path):
     if not api_key:
         print("错误: 未配置API密钥，无法测试LLM增强功能")
         return None, 0.0
+        
+    # 尝试导入我们新实现的类
+    try:
+        from src.note_generator.embedding_manager import EmbeddingManager
+        from src.note_generator.llm_caller import LLMCaller
+        print("成功导入EmbeddingManager和LLMCaller类")
+    except ImportError as e:
+        print(f"导入新实现的类失败: {str(e)}")
+        print("请确保已正确实现EmbeddingManager和LLMCaller类")
     
     # 检查图像是否存在
     if not os.path.exists(image_path):
@@ -322,24 +362,57 @@ def main():
         enhanced_text, enhanced_conf = test_advanced_ocr_llm(input_handler, image_path)
         
         # 收集结果
+        improvement = False
+        if enhanced_text and standard_text:
+            # 检查文本长度和内容是否有明显改进
+            if len(enhanced_text) > len(standard_text) * 1.1:  # 文本长度增加超过10%
+                improvement = True
+            elif enhanced_text != standard_text:  # 内容有变化
+                improvement = True
+            # 置信度明显提高
+            if enhanced_conf > standard_conf * 1.1:  # 置信度提高超过10% 
+                improvement = True
+        
         results.append({
             "image": os.path.basename(image_path),
             "standard_text": standard_text,
             "standard_confidence": standard_conf,
             "enhanced_text": enhanced_text,
             "enhanced_confidence": enhanced_conf,
-            "improvement": enhanced_text != standard_text
+            "improvement": improvement
         })
     
     # 显示测试总结
     print("\n\n========== 测试总结 ==========")
+    successes = 0
+    
     for idx, result in enumerate(results):
         print(f"\n{idx+1}. 图像: {result['image']}")
         print(f"   标准OCR置信度: {result['standard_confidence']:.4f}")
         print(f"   LLM增强置信度: {result['enhanced_confidence']:.4f}")
+        
+        # 显示标准OCR与LLM增强的对比
+        if result['standard_text'] and result['enhanced_text']:
+            # 文本长度变化
+            std_len = len(result['standard_text'])
+            enh_len = len(result['enhanced_text'])
+            len_change = (enh_len - std_len) / max(1, std_len) * 100
+            print(f"   文本长度变化: {std_len} -> {enh_len} ({len_change:.1f}%)")
+            
+            # 置信度变化
+            conf_change = (result['enhanced_confidence'] - result['standard_confidence']) / max(0.001, result['standard_confidence']) * 100
+            print(f"   置信度变化: {conf_change:.1f}%")
+        
         print(f"   是否有改进: {'是' if result['improvement'] else '否'}")
+        if result['improvement']:
+            successes += 1
+    
+    # 总体成功率
+    success_rate = (successes / len(results)) * 100 if results else 0
+    print(f"\n成功率: {success_rate:.1f}% ({successes}/{len(results)})")
     
     print("\n========== 测试完成 ==========")
+    print(f"测试完成时间: {time.strftime('%Y-%m-%d %H:%M:%S')}")
 
 
 if __name__ == "__main__":

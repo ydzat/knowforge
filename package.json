@@ -1,0 +1,15 @@
+{
+  "name": "knowforge",
+  "version": "0.1.4",
+  "description": "KnowForge AI-based learning note generator",
+  "main": "gen_notes.py",
+  "author": "ydzat",
+  "license": "GPL-3.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/knowforge.git"
+  },
+  "dependencies": {
+    "python": ">=3.11.0"
+  }
+}

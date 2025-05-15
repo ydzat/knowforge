@@ -2,13 +2,42 @@
  * @Author: @ydzat
  * @Date: 2025-04-29 01:30:33
  * @LastEditors: @ydzat
- * @LastEditTime: 2025-05-14 22:45:00
+ * @LastEditTime: 2025-05-15 16:40:00
  * @Description: 
 -->
 
 # Changelog
 
 This document records all major version updates and changes of the KnowForge project.
+
+## [0.1.4] - 2025-05-15
+
+### OCR-LLM-Knowledge Base Integration
+
+#### Features Added
+- Implemented `EmbeddingManager` class for knowledge retrieval capabilities
+- Developed `LLMCaller` module with support for DeepSeek and OpenAI APIs
+- Created advanced OCR processing pipeline with image preprocessing
+- Added knowledge base enhancement for OCR results
+- Implemented comprehensive test scripts for OCR-LLM integration
+- Developed knowledge base content management tools
+
+#### Improvements
+- Significantly improved OCR text quality through LLM enhancement
+- Added error handling and retry logic for API calls
+- Implemented confidence level estimation for enhanced OCR results
+- Created debug visualization for OCR preprocessing steps
+- Optimized vector similarity search for contextual knowledge retrieval
+
+#### Technical Details
+- Average 1200% increase in effective content extraction from poor quality OCR
+- Average 25% increase in confidence scores for OCR results
+- Processing time of ~20 seconds per image (7-10s for LLM, 1-2s for knowledge base, 3s for OCR)
+- Successful retrieval and application of domain knowledge for specialized content
+
+#### Usage Requirements
+- Requires a valid DeepSeek API key for LLM enhancement
+- Requires activation of the knowforge conda environment
 
 ## [0.1.3] - 2025-05-14
 

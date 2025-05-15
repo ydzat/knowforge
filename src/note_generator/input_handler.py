@@ -26,11 +26,16 @@ except ImportError:
 
 logger = get_module_logger("input_handler")
 
+# 保存系统原始的警告格式化函数
+_original_formatwarning = warnings.formatwarning
+
 # 定义一个警告过滤器，用于过滤PDF处理相关的警告
 def _filter_pdf_warnings(message, category, filename, lineno, file=None, line=None):
     if "CropBox missing" in str(message):
         return None  # 忽略CropBox缺失警告
-    return warnings.formatwarning(message, category, filename, lineno, line)
+    
+    # 使用原始格式化函数，避免递归调用
+    return _original_formatwarning(message, category, filename, lineno, line)
 
 # 应用自定义警告过滤器
 warnings.formatwarning = _filter_pdf_warnings
@@ -70,6 +75,14 @@ class InputHandler:
         
         # 图像预处理配置
         self.img_preprocessing = config.get("input.image_preprocessing", {"enabled": True})
+        
+        # 创建预处理目录
+        self.preprocessed_dir = os.path.join(workspace_dir, "preprocessed")
+        os.makedirs(self.preprocessed_dir, exist_ok=True)
+        os.makedirs(os.path.join(self.preprocessed_dir, "pdfs"), exist_ok=True)
+        os.makedirs(os.path.join(self.preprocessed_dir, "codes"), exist_ok=True)
+        os.makedirs(os.path.join(self.preprocessed_dir, "images"), exist_ok=True)
+        os.makedirs(os.path.join(self.preprocessed_dir, "links"), exist_ok=True)
         
         # 文件处理配置
         self.max_file_size_mb = config.get("input.max_file_size_mb", 50)
