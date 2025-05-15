@@ -19,6 +19,11 @@ chromadb>=0.4.0
 
 # LLM接口
 openai>=1.0.0
+requests>=2.31.0  # 用于DeepSeek API调用
+
+# 图像处理
+opencv-python>=4.8.0  # 图像预处理
+numpy>=1.24.0  # 数组处理
 
 # 输出生成
 markdown-it-py>=3.0.0

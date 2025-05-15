@@ -120,6 +120,12 @@ class LocaleManager:
         if prefixed_key in self._prefixed_keys:
             return prefixed_key
             
+        # 检查是否是共享键（在logloom命名空间中）
+        # logloom中的键通常不加语言前缀
+        if key_path in ["welcome", "goodbye"] or key_path.startswith(("system.", "input.", "output.", "process.", "memory.")):
+            # 尝试直接返回这个键，让Logloom去解析它
+            return key_path
+            
         # 如果没有找到映射，尝试刷新键缓存
         self._load_keys()
         

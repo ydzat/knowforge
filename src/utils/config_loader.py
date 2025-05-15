@@ -130,3 +130,29 @@ class ConfigLoader:
             环境变量值或默认值
         """
         return os.getenv(env_var, default)
+        
+    def set(self, key_path: str, value: Any) -> None:
+        """
+        设置配置项，支持使用点号分隔的路径设置嵌套配置
+        
+        Args:
+            key_path: 键路径，如"system.language"
+            value: 要设置的值
+        """
+        # 处理路径中的点号
+        parts = key_path.split(".")
+        config = self._config
+        
+        # 遍历路径中的每个部分
+        for i, part in enumerate(parts[:-1]):  # 除了最后一个部分
+            if part not in config:
+                config[part] = {}
+            elif not isinstance(config[part], dict):
+                # 如果当前部分不是字典，则将其转换为字典
+                config[part] = {}
+            
+            config = config[part]
+        
+        # 设置最后一个部分的值
+        last_part = parts[-1]
+        config[last_part] = value

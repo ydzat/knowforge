@@ -41,7 +41,9 @@ class TestInputHandler:
 
     def test_initialization(self, temp_input_dir, temp_workspace, mock_config):
         """测试初始化"""
-        handler = InputHandler(temp_input_dir, temp_workspace, mock_config)
+        # 设置input_dir配置
+        mock_config.set("paths.input_dir", temp_input_dir)
+        handler = InputHandler(mock_config, temp_workspace)
         
         # 验证预处理目录是否创建
         assert os.path.exists(os.path.join(temp_workspace, "preprocessed"))
@@ -52,7 +54,9 @@ class TestInputHandler:
     
     def test_scan_inputs_empty(self, temp_input_dir, temp_workspace, mock_config):
         """测试扫描空输入目录"""
-        handler = InputHandler(temp_input_dir, temp_workspace, mock_config)
+        # 设置input_dir配置
+        mock_config.set("paths.input_dir", temp_input_dir)
+        handler = InputHandler(mock_config, temp_workspace)
         result = handler.scan_inputs()
         
         # 验证返回结果
@@ -77,7 +81,9 @@ class TestInputHandler:
         with open(link_path, "w") as f:
             f.write("https://example.com\n")
         
-        handler = InputHandler(temp_input_dir, temp_workspace, mock_config)
+        # 设置input_dir配置
+        mock_config.set("paths.input_dir", temp_input_dir)
+        handler = InputHandler(mock_config, temp_workspace)
         result = handler.scan_inputs()
         
         # 验证扫描结果
@@ -98,7 +104,9 @@ class TestInputHandler:
         with open(code_path, "w") as f:
             f.write(code_content)
             
-        handler = InputHandler(temp_input_dir, temp_workspace, mock_config)
+        # 设置input_dir配置
+        mock_config.set("paths.input_dir", temp_input_dir)
+        handler = InputHandler(mock_config, temp_workspace)
         result = handler.process_file(code_path)
         
         # 验证提取的文本
@@ -106,7 +114,9 @@ class TestInputHandler:
     
     def test_invalid_file(self, temp_input_dir, temp_workspace, mock_config):
         """测试处理不存在的文件"""
-        handler = InputHandler(temp_input_dir, temp_workspace, mock_config)
+        # 设置input_dir配置
+        mock_config.set("paths.input_dir", temp_input_dir)
+        handler = InputHandler(mock_config, temp_workspace)
         
         with pytest.raises(InputError):
             handler.process_file("nonexistent.txt")
@@ -115,7 +125,9 @@ class TestInputHandler:
         """测试文件大小检查"""
         # 创建一个很大的（假设限制为100MB）临时文件
         # 实际测试中，我们只创建一个小文件并检查逻辑
-        handler = InputHandler(temp_input_dir, temp_workspace, mock_config)
+        # 设置input_dir配置
+        mock_config.set("paths.input_dir", temp_input_dir)
+        handler = InputHandler(mock_config, temp_workspace)
         
         # 验证检查逻辑
         assert handler._check_file_valid(__file__)  # 当前测试文件应该有效
@@ -129,7 +141,9 @@ class TestInputHandler:
     
     def test_get_link_name(self, temp_input_dir, temp_workspace, mock_config):
         """测试从URL生成安全的文件名"""
-        handler = InputHandler(temp_input_dir, temp_workspace, mock_config)
+        # 设置input_dir配置
+        mock_config.set("paths.input_dir", temp_input_dir)
+        handler = InputHandler(mock_config, temp_workspace)
         
         # 测试URL转换为安全文件名
         assert handler._get_link_name("https://example.com") == "example.com"

@@ -65,8 +65,13 @@ class Processor:
             os.makedirs(input_dir, exist_ok=True)
             os.makedirs(output_dir, exist_ok=True)
             
+            # 确保config包含input_dir路径配置
+            if not self.config.get("paths"):
+                self.config.set("paths", {})
+            self.config.set("paths.input_dir", input_dir)
+            
             # 初始化核心组件
-            self.input_handler = InputHandler(input_dir, self.workspace_dir, self.config)
+            self.input_handler = InputHandler(self.config, self.workspace_dir)
             self.splitter = Splitter(self.config)
             
             # 检查是否启用记忆功能
