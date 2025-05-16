@@ -7,7 +7,7 @@ import time
 from datetime import datetime
 import nbformat
 from nbformat.v4 import new_notebook, new_markdown_cell
-from typing import List, Dict, Optional, Any, Tuple
+from typing import List, Dict, Optional, Any, Tuple, Union
 from src.utils.logger import get_module_logger
 from src.utils.exceptions import OutputError
 from src.utils.config_loader import ConfigLoader
@@ -33,6 +33,9 @@ _DEFAULT_MESSAGES = {
         "output.pdf.generating": "正在生成PDF文件：{filename}",
         "output.pdf.saved": "PDF文件已保存：{path}",
         "output.pdf.error.generate": "生成PDF文件时出错：{error}",
+        "output.html.generating": "正在生成HTML文件：{filename}",
+        "output.html.saved": "HTML文件已保存：{path}",
+        "output.html.error.generate": "生成HTML文件时出错：{error}",
         "output.template.missing": "模板文件不存在：{path}，将使用默认模板",
         "output.template.error.load": "加载模板文件出错：{error}",
         "output.toc": "目录",
@@ -55,7 +58,10 @@ _DEFAULT_MESSAGES = {
         "output.notebook.error.generate": "Error generating Notebook: {error}",
         "output.pdf.generating": "Generating PDF file: {filename}",
         "output.pdf.saved": "PDF file saved: {path}",
-        "output.pdf.error.generate": "Error generating PDF: {error}",
+        "output.pdf.error.generate": "Error generating PDF file: {error}",
+        "output.html.generating": "Generating HTML file: {filename}",
+        "output.html.saved": "HTML file saved: {path}",
+        "output.html.error.generate": "Error generating HTML file: {error}",
         "output.template.missing": "Template file not found: {path}, using default template",
         "output.template.error.load": "Error loading template file: {error}",
         "output.toc": "Table of Contents",
@@ -106,10 +112,15 @@ class OutputWriter:
         self.md_output_dir = os.path.join(output_dir, "markdown")
         self.nb_output_dir = os.path.join(output_dir, "notebook")
         self.pdf_output_dir = os.path.join(output_dir, "pdf")
+        self.html_output_dir = os.path.join(output_dir, "html")
         
         os.makedirs(self.md_output_dir, exist_ok=True)
         os.makedirs(self.nb_output_dir, exist_ok=True)
         os.makedirs(self.pdf_output_dir, exist_ok=True)
+        os.makedirs(self.html_output_dir, exist_ok=True)
+        
+        # 加载用户输出配置
+        self.output_config = self._load_output_config()
         
         # 加载模板
         self.template_path = self.config.get(
@@ -122,6 +133,63 @@ class OutputWriter:
         # 使用安全的消息格式化，避免递归
         logger.info(_get_output_message("output.initialized", {"output_dir": output_dir}, self.lang))
     
+    def _load_output_config(self) -> Dict:
+        """
+        加载用户输出配置
+        
+        Returns:
+            输出配置字典
+        """
+        # 尝试从预定义路径加载输出配置
+        output_config_path = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
+            "resources", "config", "output_config.yaml"
+        )
+        
+        # 从配置中获取自定义路径
+        custom_config_path = self.config.get("output.config_path")
+        if custom_config_path and os.path.exists(custom_config_path):
+            output_config_path = custom_config_path
+            
+        # 如果配置文件存在，则加载它
+        if os.path.exists(output_config_path):
+            try:
+                temp_config = ConfigLoader(output_config_path)
+                logger.info(f"已加载自定义输出配置: {output_config_path}")
+                # 返回整个配置对象
+                return temp_config._config
+            except Exception as e:
+                logger.warning(f"加载输出配置文件失败: {str(e)}，将使用默认配置")
+        else:
+            logger.warning(f"输出配置文件不存在: {output_config_path}，将使用默认配置")
+        
+        # 如果配置加载失败，返回空字典
+        return {}
+    
+    def _get_config_value(self, key_path: str, default: Any = None) -> Any:
+        """
+        从输出配置中获取值，支持点号分隔的路径
+        
+        Args:
+            key_path: 点号分隔的键路径，如 'html.theme'
+            default: 默认值
+            
+        Returns:
+            配置值或默认值
+        """
+        if not self.output_config:
+            return default
+            
+        parts = key_path.split('.')
+        value = self.output_config
+        
+        for part in parts:
+            if not isinstance(value, dict) or part not in value:
+                return default
+            value = value[part]
+        
+        return value
+
     def generate_markdown(self, segments: List[str], filename: str, 
                          title: str = None) -> str:
         """
@@ -166,7 +234,7 @@ class OutputWriter:
     def generate_notebook(self, segments: List[str], filename: str,
                          title: str = None) -> str:
         """
-        生成Jupyter Notebook格式输出
+        生成Jupyter Notebook格式输出，支持LaTeX公式和交互式表格
         
         Args:
             segments: 文本片段列表
@@ -182,23 +250,58 @@ class OutputWriter:
             if not title:
                 title = filename.replace('_', ' ').title()
             
-            # 先确保生成markdown文件
-            markdown_path = self.generate_markdown(segments, filename, title)
+            # 从配置中获取Notebook设置
+            nbformat_version = self._get_config_value('notebook.nbformat_version', 4)
+            
+            # 获取是否显示元数据配置
+            show_timestamp = self._get_config_value('global.show_timestamp', True)
+            show_source = self._get_config_value('global.show_source', True)
+            show_footer = self._get_config_value('global.show_footer', True)
+            
+            # 从配置中获取自定义页脚
+            footer_template = self._get_config_value('global.footer_text', 
+                                                  '由KnowForge v{version}生成')
+            footer = footer_template.format(version=str(__version__))
+            
+            # 获取元数据配置
+            metadata_config = self._get_config_value('notebook.metadata', {})
             
             # 创建一个新的notebook
             nb = new_notebook()
             
+            # 添加元数据（如果有配置）
+            if metadata_config:
+                nb.metadata = metadata_config
+            
             # 添加标题单元格
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            timestamp_label = safe_get_text('output.timestamp_label')
+            source_label = safe_get_text('output.source_label')
+            source = safe_get_text('output.source.multiple')
             
-            header_timestamp = _get_output_message("output.timestamp", {"timestamp": timestamp}, self.lang)
-            
-            # 读取markdown内容
-            with open(markdown_path, 'r', encoding='utf-8') as md_file:
-                md_content = md_file.read()
+            # 构建标题单元格内容
+            header_md = f"# {title}\n\n"
+            if show_timestamp:
+                header_md += f"**{timestamp_label}:** {timestamp}\n\n"
+            if show_source:
+                header_md += f"**{source_label}:** {source}\n\n"
                 
-            # 添加Markdown单元格
-            nb.cells.append(new_markdown_cell(source=md_content))
+            # 添加标题单元格
+            nb.cells.append(new_markdown_cell(source=header_md))
+            
+            # 合并所有文本片段
+            content = self._merge_segments(segments)
+            
+            # 处理内容中的表格和公式，将其分割成多个单元格以更好地展示
+            cells = self._split_content_for_notebook(content)
+            
+            # 将所有单元格添加到notebook中
+            for cell_content in cells:
+                nb.cells.append(new_markdown_cell(source=cell_content))
+            
+            # 添加页脚（如果需要）
+            if show_footer:
+                nb.cells.append(new_markdown_cell(source=f"---\n\n{footer}"))
             
             # 保存Notebook文件
             output_path = os.path.join(self.nb_output_dir, f"{filename}.ipynb")
@@ -213,10 +316,169 @@ class OutputWriter:
             logger.error(error_msg)
             raise OutputError(error_msg)
     
-    def generate_pdf(self, segments: List[str], filename: str, 
-                    title: str = None) -> str:
+    def _split_content_for_notebook(self, content: str) -> List[str]:
         """
-        生成PDF格式输出（当前为占位实现）
+        将内容分割成适合Jupyter Notebook的单元格
+        
+        Args:
+            content: 完整的文档内容
+            
+        Returns:
+            分割后的单元格内容列表
+        """
+        if not content:
+            return []
+        
+        # 获取单元格分割策略配置
+        cell_split_config = self._get_config_value('notebook.cell_split_strategy', {})
+        split_on_headers = cell_split_config.get('split_on_headers', True)
+        split_on_code_blocks = cell_split_config.get('split_on_code_blocks', True)
+        split_on_tables = cell_split_config.get('split_on_tables', True)
+        split_on_math_blocks = cell_split_config.get('split_on_math_blocks', True)
+        
+        # 创建一个保存所有单元格的列表
+        cells = []
+        
+        # 用于临时保存当前单元格内容
+        current_cell = ""
+        
+        # 按行处理内容
+        lines = content.split("\n")
+        i = 0
+        
+        while i < len(lines):
+            line = lines[i]
+            
+            # 检查是否为标题行
+            if split_on_headers and line.strip() and line.strip()[0] == '#':
+                # 如果当前单元格有内容，保存它
+                if current_cell.strip():
+                    cells.append(current_cell)
+                    current_cell = ""
+                
+                # 开始新的单元格，从标题开始
+                current_cell = line + "\n"
+                i += 1
+                
+                # 继续添加内容到标题单元格，直到遇到另一个标题或特殊块
+                while i < len(lines):
+                    if (i < len(lines) and 
+                        ((split_on_headers and lines[i].strip() and lines[i].strip()[0] == '#') or 
+                        (split_on_tables and lines[i].startswith('|')) or
+                        (split_on_code_blocks and lines[i].startswith('```')) or
+                        (split_on_math_blocks and lines[i].startswith('$$')))):
+                        break
+                    current_cell += lines[i] + "\n"
+                    i += 1
+                
+                # 保存标题单元格
+                if current_cell.strip():
+                    cells.append(current_cell)
+                    current_cell = ""
+                    
+                # i已经指向下一个要处理的行，不需要再增加
+                continue
+            
+            # 检查是否为表格开始
+            elif split_on_tables and line.startswith('|'):
+                # 如果当前单元格有内容，保存它
+                if current_cell.strip():
+                    cells.append(current_cell)
+                    current_cell = ""
+                
+                # 开始新的表格单元格
+                table_cell = line + "\n"
+                i += 1
+                
+                # 继续添加表格行
+                while i < len(lines) and lines[i].startswith('|'):
+                    table_cell += lines[i] + "\n"
+                    i += 1
+                
+                # 添加说明行（如果有的话）
+                if i < len(lines) and lines[i].strip() and not (
+                    (split_on_headers and lines[i].strip()[0] == '#') or
+                    (split_on_code_blocks and lines[i].startswith('```')) or
+                    (split_on_math_blocks and lines[i].startswith('$$'))
+                ):
+                    table_cell += lines[i] + "\n"
+                    i += 1
+                
+                # 保存表格单元格
+                cells.append(table_cell)
+                
+                # i已经指向下一个要处理的行
+                continue
+            
+            # 检查是否为代码块开始
+            elif split_on_code_blocks and line.startswith('```'):
+                # 如果当前单元格有内容，保存它
+                if current_cell.strip():
+                    cells.append(current_cell)
+                    current_cell = ""
+                
+                # 开始新的代码块单元格
+                code_cell = line + "\n"
+                i += 1
+                
+                # 继续添加代码块内容
+                while i < len(lines) and not lines[i].startswith('```'):
+                    code_cell += lines[i] + "\n"
+                    i += 1
+                
+                # 添加结束标记
+                if i < len(lines):
+                    code_cell += lines[i] + "\n"
+                    i += 1
+                
+                # 保存代码块单元格
+                cells.append(code_cell)
+                
+                # i已经指向下一个要处理的行
+                continue
+            
+            # 检查是否为数学公式块开始
+            elif split_on_math_blocks and line.startswith('$$'):
+                # 如果当前单元格有内容，保存它
+                if current_cell.strip():
+                    cells.append(current_cell)
+                    current_cell = ""
+                
+                # 开始新的公式单元格
+                math_cell = line + "\n"
+                i += 1
+                
+                # 继续添加公式内容
+                while i < len(lines) and not lines[i].startswith('$$'):
+                    math_cell += lines[i] + "\n"
+                    i += 1
+                
+                # 添加结束标记
+                if i < len(lines):
+                    math_cell += lines[i] + "\n"
+                    i += 1
+                
+                # 保存公式单元格
+                cells.append(math_cell)
+                
+                # i已经指向下一个要处理的行
+                continue
+            
+            # 常规内容，添加到当前单元格
+            else:
+                current_cell += line + "\n"
+                i += 1
+        
+        # 保存最后一个单元格（如果有的话）
+        if current_cell.strip():
+            cells.append(current_cell)
+        
+        return cells
+
+    def generate_pdf(self, segments: List[str], filename: str, 
+                     title: str = None) -> str:
+        """
+        生成PDF格式输出，支持表格和LaTeX公式渲染
         
         Args:
             segments: 文本片段列表
@@ -238,13 +500,353 @@ class OutputWriter:
             # 生成目录
             toc = self._generate_toc(content)
             
-            # 应用模板
-            pdf_text = self._apply_template(title, content, toc)
+            # 从配置中获取PDF设置
+            preferred_engine = self._get_config_value('pdf.preferred_engine', 'weasyprint')
+            page_size = self._get_config_value('pdf.page_size', 'A4')
+            page_margin = self._get_config_value('pdf.page_margin', '1.5cm')
+            
+            # 获取样式配置
+            styles = self._get_config_value('pdf.styles', {})
+            font_family = styles.get('font_family', 'sans-serif')
+            heading_font = styles.get('heading_font', 'sans-serif') 
+            code_font = styles.get('code_font', 'monospace')
+            base_font_size = styles.get('base_font_size', '11pt')
+            heading_font_size = styles.get('heading_font_size', '16pt')
+            text_color = styles.get('text_color', '#333333')
+            background_color = styles.get('background_color', '#ffffff')
+            heading_color = styles.get('heading_color', '#333333')
+            table_border = styles.get('table_border', '1pt solid #dddddd')
+            table_header_bg = styles.get('table_header_bg', '#f7f7f7')
+            
+            # 获取分页设置
+            pagination = self._get_config_value('pdf.pagination', {})
+            show_page_numbers = pagination.get('show_page_numbers', True)
+            page_number_format = pagination.get('page_number_format', '%d')
+            page_number_position = pagination.get('page_number_position', 'bottom-center')
+            
+            # 是否显示元数据
+            show_timestamp = self._get_config_value('global.show_timestamp', True)
+            show_source = self._get_config_value('global.show_source', True)
+            show_toc = self._get_config_value('global.generate_toc', True)
+            show_footer = self._get_config_value('global.show_footer', True)
+            
+            # 获取页脚配置
+            footer_template = self._get_config_value('global.footer_text', 
+                                                  '由KnowForge v{version}生成')
+            footer = footer_template.format(version=str(__version__))
+            
+            # 尝试按照首选引擎顺序生成PDF
+            engine_tried = False
+            output_path = None
+            
+            # 首先尝试使用weasyprint（如果是首选或者没有设置首选）
+            if preferred_engine == 'weasyprint' or not engine_tried:
+                try:
+                    # 通过HTML中间格式生成PDF
+                    from weasyprint import HTML, CSS
+                    from weasyprint.text.fonts import FontConfiguration
+                    
+                    # 生成完整的HTML内容（重用generate_html方法的一部分逻辑）
+                    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    timestamp_label = safe_get_text('output.timestamp_label')
+                    source_label = safe_get_text('output.source_label')
+                    source = safe_get_text('output.source.multiple')
+                    toc_title = safe_get_text('output.toc')
+                    
+                    # 创建临时HTML文件路径
+                    temp_html_path = os.path.join(self.html_output_dir, f"{filename}_temp.html")
+                    output_path = os.path.join(self.pdf_output_dir, f"{filename}.pdf")
+                    
+                    # 创建页码样式
+                    page_number_css = ""
+                    if show_page_numbers:
+                        page_number_css = f"""
+            @{page_number_position} {{
+                content: "{page_number_format}";
+                font-family: {font_family};
+                font-size: 10pt;
+            }}"""
+                    
+                    # 创建HTML模板（简化版，适合PDF渲染）
+                    html_template = f"""<!DOCTYPE html>
+<html lang="{self.lang}">
+<head>
+    <meta charset="UTF-8">
+    <title>{title}</title>
+    <style>
+        @page {{
+            size: {page_size};
+            margin: {page_margin};{page_number_css}
+        }}
+        body {{
+            font-family: {font_family};
+            line-height: 1.6;
+            color: {text_color};
+            margin: 0;
+            padding: 0;
+            background-color: {background_color};
+            font-size: {base_font_size};
+        }}
+        h1 {{
+            font-family: {heading_font};
+            font-size: {heading_font_size};
+            page-break-before: always;
+            page-break-after: avoid;
+            border-bottom: 1pt solid #ddd;
+            padding-bottom: 10pt;
+            color: {heading_color};
+        }}
+        h1:first-of-type {{
+            page-break-before: avoid;
+        }}
+        h2 {{
+            font-family: {heading_font};
+            font-size: calc({heading_font_size} * 0.85);
+            page-break-after: avoid;
+            color: {heading_color};
+        }}
+        h3 {{
+            font-family: {heading_font};
+            font-size: calc({heading_font_size} * 0.7);
+            page-break-after: avoid;
+            color: {heading_color};
+        }}
+        h4, h5, h6 {{
+            font-family: {heading_font};
+            page-break-after: avoid;
+            color: {heading_color};
+        }}
+        p, table, figure {{
+            margin-bottom: 10pt;
+        }}
+        img {{
+            max-width: 100%;
+        }}
+        table {{
+            width: 100%;
+            border-collapse: collapse;
+            page-break-inside: avoid;
+        }}
+        th, td {{
+            border: {table_border};
+            padding: 5pt;
+            text-align: left;
+        }}
+        th {{
+            background-color: {table_header_bg};
+        }}
+        pre {{
+            background-color: #f7f7f7;
+            padding: 8pt;
+            font-family: {code_font};
+            overflow-x: auto;
+            white-space: pre-wrap;
+        }}
+        .meta-info {{
+            margin-bottom: 20pt;
+            font-size: 10pt;
+            color: #666;
+        }}
+        .toc {{
+            page-break-after: always;
+            background-color: #f7f7f7;
+            padding: 10pt;
+            margin: 15pt 0;
+        }}
+        .toc ul {{
+            list-style-type: none;
+            padding-left: 15pt;
+        }}
+        .toc li {{
+            margin: 5pt 0;
+            line-height: 1.4;
+        }}
+        .content {{
+            margin: 15pt 0;
+        }}
+        footer {{
+            text-align: center;
+            margin-top: 20pt;
+            border-top: 1pt solid #ddd;
+            padding-top: 10pt;
+            font-size: 9pt;
+            color: #666;
+        }}
+        blockquote {{
+            border-left: 5pt solid #eee;
+            padding-left: 10pt;
+            color: #666;
+        }}
+    </style>
+    <!-- 添加LaTeX支持 -->
+    <script>
+      MathJax = {{
+        tex: {{
+          inlineMath: [['$', '$'], ['\\\\(', '\\\\)']]
+        }}
+      }};
+    </script>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+</head>
+<body>
+    <h1>{title}</h1>
+    
+    {f'''<div class="meta-info">
+        {f'<strong>{timestamp_label}:</strong> {timestamp}<br>' if show_timestamp else ''}
+        {f'<strong>{source_label}:</strong> {source}' if show_source else ''}
+    </div>''' if show_timestamp or show_source else ''}
+    
+    {f'''<div class="toc">
+        <h2>{toc_title}</h2>
+        <ul>
+            {self._convert_toc_to_html(toc)}
+        </ul>
+    </div>''' if show_toc and toc else ''}
+    
+    <div class="content">
+        {self._markdown_to_html(content)}
+    </div>
+    
+    {f'<footer>{footer}</footer>' if show_footer else ''}
+</body>
+</html>"""
+                
+                    # 保存临时HTML文件
+                    with open(temp_html_path, 'w', encoding='utf-8') as f:
+                        f.write(html_template)
+                    
+                    # 配置字体
+                    font_config = FontConfiguration()
+                    
+                    # 从HTML生成PDF
+                    html = HTML(filename=temp_html_path)
+                    html.write_pdf(output_path, font_config=font_config)
+                    
+                    # 删除临时HTML文件
+                    os.remove(temp_html_path)
+                    
+                    logger.info(_get_output_message("output.pdf.saved", {"path": output_path}, self.lang))
+                    return output_path
+                except ImportError as e:
+                    logger.warning(f"PDF生成需要weasyprint库，但未找到: {str(e)}")
+                    engine_tried = True
+                
+            # 尝试使用fpdf（如果是首选或前一个引擎失败）
+            if preferred_engine == 'fpdf' or engine_tried:
+                try:
+                    import markdown
+                    from fpdf import FPDF
+                    
+                    # 获取样式配置以应用于FPDF
+                    font_name = 'Arial'  # FPDF默认支持的字体
+                    base_font_size = int(styles.get('base_font_size', '11').replace('pt', ''))
+                    heading_font_size = int(styles.get('heading_font_size', '16').replace('pt', ''))
+                    
+                    # 将Markdown转换为简单的文本
+                    plain_text = content
+                    # 尝试使用我们的markdown转换函数
+                    try:
+                        html_text = self._markdown_to_html(content)
+                        # 使用正则表达式替换HTML标签
+                        plain_text = re.sub(r'<[^>]+>', ' ', html_text)
+                    except Exception:
+                        # 如果转换失败，使用简单的正则替换
+                        plain_text = re.sub(r'(```|##+|==|\*\*|\*|__|_|~~|<.*?>)', '', plain_text)
+                    
+                    # 创建PDF
+                    pdf = FPDF(format=page_size)
+                    pdf.add_page()
+                    pdf.set_auto_page_break(auto=True, margin=15)
+                    
+                    # 添加标题
+                    pdf.set_font(font_name, 'B', heading_font_size)
+                    pdf.cell(0, 10, title, ln=True)
+                    
+                    # 添加元数据（如果需要）
+                    if show_timestamp or show_source:
+                        # 添加时间戳
+                        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                        timestamp_label = safe_get_text('output.timestamp_label')
+                        source_label = safe_get_text('output.source_label')
+                        source = safe_get_text('output.source.multiple')
+                        
+                        pdf.set_font(font_name, '', 10)
+                        if show_timestamp:
+                            pdf.cell(0, 10, f"{timestamp_label}: {timestamp}", ln=True)
+                        if show_source:
+                            pdf.cell(0, 10, f"{source_label}: {source}", ln=True)
+                    
+                    # 添加目录（如果需要）
+                    if show_toc and toc:
+                        toc_title = safe_get_text('output.toc')
+                        pdf.set_font(font_name, 'B', base_font_size + 2)
+                        pdf.cell(0, 10, toc_title, ln=True)
+                        
+                        # 简化的目录渲染
+                        pdf.set_font(font_name, '', base_font_size)
+                        for line in toc.split('\n'):
+                            if line.strip():
+                                # 计算缩进级别
+                                indent = 0
+                                for char in line:
+                                    if char == ' ':
+                                        indent += 1
+                                    else:
+                                        break
+                                
+                                # 应用简单缩进
+                                pdf.cell(indent, 10, '')
+                                pdf.cell(0, 10, line.strip(), ln=True)
+                    
+                    # 添加内容
+                    pdf.set_font(font_name, '', base_font_size)
+                    
+                    # 按行添加内容，识别标题
+                    for line in plain_text.split('\n'):
+                        if line.startswith('# '):
+                            pdf.set_font(font_name, 'B', heading_font_size)
+                            pdf.cell(0, 10, line[2:], ln=True)
+                            pdf.set_font(font_name, '', base_font_size)
+                        elif line.startswith('## '):
+                            pdf.set_font(font_name, 'B', heading_font_size - 2)
+                            pdf.cell(0, 10, line[3:], ln=True)
+                            pdf.set_font(font_name, '', base_font_size)
+                        elif line.startswith('### '):
+                            pdf.set_font(font_name, 'B', heading_font_size - 4)
+                            pdf.cell(0, 10, line[4:], ln=True)
+                            pdf.set_font(font_name, '', base_font_size)
+                        else:
+                            pdf.multi_cell(0, 10, line)
+                    
+                    # 添加页脚（如果需要）
+                    if show_footer:
+                        pdf.set_y(-30)
+                        pdf.set_font(font_name, 'I', 8)
+                        pdf.cell(0, 10, footer, 0, 0, 'C')
+                    
+                    # 保存PDF
+                    output_path = os.path.join(self.pdf_output_dir, f"{filename}.pdf")
+                    pdf.output(output_path)
+                    
+                    logger.info(_get_output_message("output.pdf.saved", {"path": output_path}, self.lang))
+                    logger.warning("使用FPDF生成方式，某些格式可能无法正确显示。")
+                    return output_path
+                except ImportError:
+                    logger.warning("未找到PDF生成库 fpdf，尝试下一种方法")
+                    engine_tried = True
+                except Exception as e:
+                    logger.warning(f"使用FPDF生成PDF失败: {str(e)}")
+                    engine_tried = True
+            
+            # 如果所有PDF生成方法都失败，使用纯文本格式保存
+            logger.warning("未找到可用的PDF生成库，使用纯文本格式保存")
             
             # 保存到文件（当前仅保存占位内容）
-            output_path = os.path.join(self.pdf_output_dir, f"{filename}.pdf")
+            output_path = os.path.join(self.pdf_output_dir, f"{filename}.txt")
             with open(output_path, 'w', encoding='utf-8') as f:
-                f.write(pdf_text)
+                f.write(f"# {title}\n\n")
+                f.write(content)
             
             logger.info(_get_output_message("output.pdf.saved", {"path": output_path}, self.lang))
             logger.warning(_get_output_message("output.pdf.placeholder.warning", lang=self.lang))
@@ -255,6 +857,442 @@ class OutputWriter:
             error_msg = _get_output_message("output.pdf.error.generate", {"error": str(e)}, self.lang)
             logger.error(error_msg)
             raise OutputError(error_msg)
+    
+    def generate_html(self, segments: List[str], filename: str, 
+                     title: str = None) -> str:
+        """
+        生成HTML格式输出，支持响应式表格和MathJax公式
+        
+        Args:
+            segments: 文本片段列表
+            filename: 输出文件名（不含扩展名）
+            title: 文档标题，若为None则使用filename
+            
+        Returns:
+            生成的HTML文件路径
+        """
+        logger.info(_get_output_message("output.html.generating", {"filename": filename}, self.lang))
+        
+        try:
+            if not title:
+                title = filename.replace('_', ' ').title()
+            
+            # 先生成Markdown内容
+            markdown_content = self._merge_segments(segments)
+            
+            # 生成目录
+            toc = self._generate_toc(markdown_content)
+            
+            # 创建HTML页面内容
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            timestamp_label = safe_get_text('output.timestamp_label')
+            source_label = safe_get_text('output.source_label')
+            source = safe_get_text('output.source.multiple')
+            toc_title = safe_get_text('output.toc')
+            
+            # 从配置中获取自定义页脚
+            footer_template = self._get_config_value('global.footer_text', 
+                                                  '由KnowForge v{version}生成')
+            footer = footer_template.format(version=str(__version__))
+            
+            # 从配置获取主题和样式
+            theme = self._get_config_value('html.theme', 'default')
+            
+            # 获取样式配置
+            styles = self._get_config_value('html.styles', {})
+            font_family = styles.get('font_family', 'Segoe UI, Tahoma, Geneva, Verdana, sans-serif')
+            heading_font = styles.get('heading_font', 'Arial, sans-serif')
+            code_font = styles.get('code_font', 'Courier New, monospace')
+            text_color = styles.get('text_color', '#333333')
+            background_color = styles.get('background_color', '#f8f9fa')
+            heading_color = styles.get('heading_color', '#333333')
+            link_color = styles.get('link_color', '#007bff')
+            container_width = styles.get('container_width', '900px')
+            container_padding = styles.get('container_padding', '30px')
+            table_border_color = styles.get('table_border_color', '#dddddd')
+            table_header_bg = styles.get('table_header_bg', '#f2f2f2')
+            
+            # 获取资源配置
+            resources = self._get_config_value('html.resources', {})
+            use_cdn = resources.get('use_cdn', True)
+            bootstrap_css = resources.get('bootstrap_css', 
+                                     'https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css')
+            bootstrap_js = resources.get('bootstrap_js', 
+                                     'https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js')
+            mathjax_js = resources.get('mathjax_js', 
+                                   'https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js')
+            highlight_css = resources.get('highlight_css', 
+                                     'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/default.min.css')
+            highlight_js = resources.get('highlight_js', 
+                                     'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js')
+            
+            # 代码高亮主题
+            code_highlight_theme = self._get_config_value('html.code_highlight_theme', 'default')
+            
+            # 如果不使用CDN，采用本地资源
+            if not use_cdn:
+                local_resource_dir = resources.get('local_resource_dir', 'resources/assets')
+                # 将本地资源目录转换为绝对路径
+                local_resource_dir = os.path.join(
+                    os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
+                    local_resource_dir
+                )
+                
+                # 检查本地资源目录是否存在，如果不存在则创建
+                os.makedirs(os.path.join(local_resource_dir, 'styles'), exist_ok=True)
+                
+                # 将本地路径转换为适合HTML的URL格式
+                bootstrap_css = f"file://{os.path.abspath(os.path.join(local_resource_dir, 'bootstrap.min.css'))}"
+                bootstrap_js = f"file://{os.path.abspath(os.path.join(local_resource_dir, 'bootstrap.bundle.min.js'))}"
+                mathjax_js = f"file://{os.path.abspath(os.path.join(local_resource_dir, 'tex-mml-chtml.js'))}"
+                highlight_css = f"file://{os.path.abspath(os.path.join(local_resource_dir, 'styles', code_highlight_theme + '.min.css'))}"
+                highlight_js = f"file://{os.path.abspath(os.path.join(local_resource_dir, 'highlight.min.js'))}"
+                
+                # 如果文件不存在，记录警告并回退到CDN
+                missing_files = []
+                for file_path, file_name in [
+                    (bootstrap_css[7:], 'Bootstrap CSS'),
+                    (bootstrap_js[7:], 'Bootstrap JS'),
+                    (mathjax_js[7:], 'MathJax'),
+                    (highlight_css[7:], 'Highlight CSS'),
+                    (highlight_js[7:], 'Highlight JS')
+                ]:
+                    if not os.path.exists(file_path):
+                        missing_files.append(file_name)
+                
+                if missing_files:
+                    logger.warning(f"本地资源文件不存在: {', '.join(missing_files)}。将使用CDN资源。")
+                    # 回退到CDN
+                    bootstrap_css = resources.get('bootstrap_css', 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css')
+                    bootstrap_js = resources.get('bootstrap_js', 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js')
+                    mathjax_js = resources.get('mathjax_js', 'https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js')
+                    highlight_css = resources.get('highlight_css', 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/default.min.css')
+                    highlight_js = resources.get('highlight_js', 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js')
+            
+            # 根据主题选择样式
+            if theme == 'dark':
+                background_color = styles.get('background_color', '#222222')
+                text_color = styles.get('text_color', '#f0f0f0')
+                heading_color = styles.get('heading_color', '#ffffff')
+                link_color = styles.get('link_color', '#5caefd')
+                table_header_bg = styles.get('table_header_bg', '#333333')
+                table_border_color = styles.get('table_border_color', '#444444')
+            elif theme == 'minimal':
+                background_color = styles.get('background_color', '#ffffff')
+                container_width = styles.get('container_width', '800px')
+                container_padding = styles.get('container_padding', '20px')
+            
+            # 是否显示元数据
+            show_timestamp = self._get_config_value('global.show_timestamp', True)
+            show_source = self._get_config_value('global.show_source', True)
+            show_toc = self._get_config_value('global.generate_toc', True)
+            show_footer = self._get_config_value('global.show_footer', True)
+            
+            # HTML模板，包含Bootstrap样式和MathJax支持
+            html_template = f"""<!DOCTYPE html>
+<html lang="{self.lang}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{title}</title>
+    <!-- Bootstrap CSS -->
+    <link href="{bootstrap_css}" rel="stylesheet">
+    <!-- 自定义样式 -->
+    <style>
+        body {{
+            font-family: {font_family};
+            line-height: 1.6;
+            color: {text_color};
+            margin: 0;
+            padding: 20px;
+            background-color: {background_color};
+        }}
+        .container {{
+            max-width: {container_width};
+            margin: 0 auto;
+            background-color: {'white' if theme != 'dark' else '#333333'};
+            padding: {container_padding};
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }}
+        h1, h2, h3, h4, h5, h6 {{
+            font-family: {heading_font};
+            color: {heading_color};
+            margin-top: 1.5em;
+            margin-bottom: 0.5em;
+        }}
+        h1 {{
+            padding-bottom: 10px;
+            border-bottom: 1px solid {'#eee' if theme != 'dark' else '#555'};
+        }}
+        img {{
+            max-width: 100%;
+            height: auto;
+            margin: 20px 0;
+        }}
+        table {{
+            width: 100%;
+            margin: 20px 0;
+            border-collapse: collapse;
+        }}
+        th, td {{
+            padding: 8px 12px;
+            border: 1px solid {table_border_color};
+        }}
+        th {{
+            background-color: {table_header_bg};
+        }}
+        pre, code {{
+            background-color: {'#f8f9fa' if theme != 'dark' else '#2d2d2d'};
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-family: {code_font};
+        }}
+        blockquote {{
+            border-left: 5px solid {'#eee' if theme != 'dark' else '#555'};
+            padding-left: 15px;
+            color: {'#666' if theme != 'dark' else '#aaa'};
+        }}
+        .meta-info {{
+            color: {'#666' if theme != 'dark' else '#aaa'};
+            font-size: 0.9em;
+            margin-bottom: 20px;
+        }}
+        .toc {{
+            background-color: {'#f8f9fa' if theme != 'dark' else '#2d2d2d'};
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }}
+        .toc ul {{
+            list-style-type: none;
+            padding-left: 15px;
+        }}
+        .toc li {{
+            margin: 5px 0;
+        }}
+        .toc a {{
+            color: {link_color};
+            text-decoration: none;
+        }}
+        .toc a:hover {{
+            text-decoration: underline;
+        }}
+        footer {{
+            margin-top: 30px;
+            padding-top: 10px;
+            border-top: 1px solid {'#eee' if theme != 'dark' else '#555'};
+            font-size: 0.9em;
+            color: {'#666' if theme != 'dark' else '#aaa'};
+            text-align: center;
+        }}
+        /* 代码高亮 */
+        .hljs {{
+            display: block;
+            overflow-x: auto;
+            padding: 1em;
+            background: {'#f8f8f8' if theme != 'dark' else '#2d2d2d'};
+            color: {'#333' if theme != 'dark' else '#f8f8f8'};
+        }}
+        /* 公式样式 */
+        .math {{
+            font-size: 1.1em;
+            margin: 10px 0;
+        }}
+    </style>
+    <!-- MathJax支持 -->
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="{mathjax_js}"></script>
+    <!-- 代码高亮 -->
+    <link rel="stylesheet" href="{highlight_css}">
+    <script src="{highlight_js}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', (event) => {{
+            document.querySelectorAll('pre code').forEach((el) => {{
+                hljs.highlightElement(el);
+            }});
+        }});
+    </script>
+</head>
+<body>
+    <div class="container">
+        <h1>{title}</h1>
+        
+        {f'''<div class="meta-info">
+            {f'<strong>{timestamp_label}:</strong> {timestamp}<br>' if show_timestamp else ''}
+            {f'<strong>{source_label}:</strong> {source}' if show_source else ''}
+        </div>''' if show_timestamp or show_source else ''}
+        
+        {f'''<div class="toc">
+            <h2>{toc_title}</h2>
+            <ul>
+                {self._convert_toc_to_html(toc)}
+            </ul>
+        </div>''' if show_toc and toc else ''}
+        
+        <div class="content">
+            {self._markdown_to_html(markdown_content)}
+        </div>
+        
+        {f'<footer>{footer}</footer>' if show_footer else ''}
+    </div>
+    
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="{bootstrap_js}"></script>
+</body>
+</html>"""
+            
+            # 保存到文件
+            output_path = os.path.join(self.html_output_dir, f"{filename}.html")
+            with open(output_path, 'w', encoding='utf-8') as f:
+                f.write(html_template)
+            
+            logger.info(_get_output_message("output.html.saved", {"path": output_path}, self.lang))
+            return output_path
+            
+        except Exception as e:
+            error_msg = _get_output_message("output.html.error.generate", {"error": str(e)}, self.lang)
+            logger.error(error_msg)
+            raise OutputError(error_msg)
+    
+    def _convert_toc_to_html(self, toc: str) -> str:
+        """
+        将Markdown格式的目录转换为HTML格式
+        
+        Args:
+            toc: Markdown格式的目录
+            
+        Returns:
+            HTML格式的目录
+        """
+        if not toc:
+            return ""
+            
+        html_toc = []
+        current_level = 0
+        stack = []
+        
+        for line in toc.split('\n'):
+            if not line.strip():
+                continue
+                
+            # 计算当前行的缩进级别
+            level = 0
+            for i, char in enumerate(line):
+                if char == ' ':
+                    continue
+                if char == '-':
+                    level = i // 2 + 1
+                break
+            
+            # 提取链接文本和URL
+            match = re.match(r'.*?\[(.*?)\]\((.*?)\)', line)
+            if match:
+                text = match.group(1)
+                url = match.group(2)
+                
+                # 处理缩进级别变化
+                if level > current_level:
+                    # 缩进增加，添加新的嵌套列表
+                    html_toc.append('<ul>')
+                    stack.append(level)
+                elif level < current_level:
+                    # 缩进减少，关闭嵌套列表
+                    while stack and stack[-1] > level:
+                        html_toc.append('</ul>')
+                        stack.pop()
+                
+                # 添加列表项
+                html_toc.append(f'<li><a href="{url}">{text}</a></li>')
+                current_level = level
+        
+        # 关闭所有剩余的嵌套列表
+        while stack:
+            html_toc.append('</ul>')
+            stack.pop()
+            
+        return '\n'.join(html_toc)
+    
+    def _markdown_to_html(self, md_text: str) -> str:
+        """
+        将Markdown格式文本转换为HTML格式
+        
+        Args:
+            md_text: Markdown格式文本
+            
+        Returns:
+            HTML格式文本
+        """
+        # 导入 markdown 模块(如果不存在则添加简单转换)
+        try:
+            import markdown
+            
+            # 尝试导入 mdx_math，但如果不可用也不会中断
+            extensions = [
+                'tables',                  # 表格支持
+                'fenced_code',             # 代码块支持
+                'codehilite',              # 代码高亮
+                'toc',                     # 目录支持
+                'nl2br',                   # 换行支持
+                'sane_lists',              # 更好的列表支持
+                'smarty',                  # 智能标点符号
+            ]
+            
+            # 尝试添加 mdx_math 扩展，如果已安装
+            try:
+                import mdx_math
+                extensions.append('mdx_math')  # LaTeX公式支持
+            except ImportError:
+                logger.warning("未找到mdx_math模块，数学公式可能无法正确显示")
+            
+            # 使用扩展转换Markdown到HTML
+            html = markdown.markdown(md_text, extensions=extensions)
+            
+            # 处理响应式表格
+            html = html.replace('<table>', '<table class="table table-striped table-hover">')
+            
+            return html
+        except ImportError:
+            # 如果没有markdown模块，使用简单的转换
+            logger.warning("markdown模块未安装，使用简单转换")
+            
+            # 简单的转换，处理基本的Markdown语法
+            html = md_text
+            
+            # 处理标题
+            for i in range(6, 0, -1):
+                pattern = r'^' + r'#' * i + r'\s+(.+)$'
+                repl = r'<h{0}>\1</h{0}>'.format(i)
+                html = re.sub(pattern, repl, html, flags=re.MULTILINE)
+            
+            # 处理粗体
+            html = re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', html)
+            
+            # 处理斜体
+            html = re.sub(r'\*(.+?)\*', r'<em>\1</em>', html)
+            
+            # 处理代码块
+            html = re.sub(r'```(.*?)\n(.*?)```', r'<pre><code>\2</code></pre>', html, flags=re.DOTALL)
+            
+            # 处理行内代码
+            html = re.sub(r'`(.+?)`', r'<code>\1</code>', html)
+            
+            # 处理链接
+            html = re.sub(r'\[(.+?)\]\((.+?)\)', r'<a href="\2">\1</a>', html)
+            
+            # 处理无序列表
+            html = re.sub(r'^- (.+)$', r'<li>\1</li>', html, flags=re.MULTILINE)
+            
+            # 处理数学公式（保持原样，由MathJax处理）
+            html = re.sub(r'\$\$(.*?)\$\$', r'<div class="math">\$\$\1\$\$</div>', html, flags=re.DOTALL)
+            html = re.sub(r'\$(.*?)\$', r'<span class="math">\$\1\$</span>', html)
+            
+            # 处理段落和换行
+            html = re.sub(r'\n\n', '</p><p>', html)
+            html = '<p>' + html + '</p>'
+            
+            return html
     
     def _load_template(self, template_path: str) -> str:
         """

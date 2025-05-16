@@ -1,0 +1,132 @@
+# KnowForge 输出配置文件
+# 此文件用于自定义各种输出格式的外观和行为
+
+# 全局设置，适用于所有输出格式
+global:
+  # 默认输出语言
+  language: zh
+  # 是否生成目录
+  generate_toc: true
+  # 是否显示源信息
+  show_source: true
+  # 是否显示时间戳
+  show_timestamp: true
+  # 是否显示页脚
+  show_footer: true
+  # 默认标题格式
+  title_format: "{title}"
+  # 默认页脚文本
+  footer_text: "由KnowForge v{version}生成"
+
+# HTML输出配置
+html:
+  # 使用的主题
+  theme: default  # 可选: default, dark, light, minimal
+  # 代码高亮主题
+  code_highlight_theme: github  # 可选: github, dracula, monokai, etc.
+  # 自定义样式
+  styles:
+    # 字体设置
+    font_family: "Segoe UI, Tahoma, Geneva, Verdana, sans-serif"
+    heading_font: "Arial, sans-serif"
+    code_font: "Courier New, monospace"
+    # 颜色设置
+    text_color: "#333333"
+    background_color: "#f8f9fa"
+    heading_color: "#333333"
+    link_color: "#007bff"
+    # 容器样式
+    container_width: "900px"
+    container_padding: "30px"
+    # 表格样式
+    table_border_color: "#dddddd"
+    table_header_bg: "#f2f2f2"
+  # 资源设置
+  resources:
+    # 是否使用CDN资源（如果为false则使用本地资源）
+    use_cdn: true
+    # 资源引用
+    bootstrap_css: "https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+    bootstrap_js: "https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
+    mathjax_js: "https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"
+    highlight_css: "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/default.min.css"
+    highlight_js: "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"
+    # 本地资源根目录（仅当use_cdn为false时使用）
+    local_resource_dir: "resources/assets"
+
+# PDF输出配置
+pdf:
+  # PDF格式和大小
+  page_size: "A4"
+  page_margin: "1.5cm"
+  # 首选的PDF生成引擎
+  preferred_engine: "weasyprint"  # 可选: weasyprint, fpdf, pdfkit
+  # 自定义样式
+  styles:
+    # 字体设置
+    font_family: "sans-serif"
+    heading_font: "sans-serif"
+    code_font: "monospace"
+    base_font_size: "11pt"
+    heading_font_size: "16pt"
+    # 颜色设置
+    text_color: "#333333"
+    background_color: "#ffffff"
+    heading_color: "#333333"
+    # 表格样式
+    table_border: "1pt solid #dddddd"
+    table_header_bg: "#f7f7f7"
+  # 分页设置
+  pagination:
+    # 是否在每页底部显示页码
+    show_page_numbers: true
+    # 页码格式
+    page_number_format: "%d"  # %d 被替换为页码
+    # 页码位置 
+    page_number_position: "bottom-center"  # 可选: bottom-center, bottom-right, bottom-left
+
+# Jupyter Notebook输出配置
+notebook:
+  # Notebook版本
+  nbformat_version: 4
+  # 单元格分割策略
+  cell_split_strategy:
+    # 是否按标题分割
+    split_on_headers: true
+    # 是否为每个代码块创建新的单元格
+    split_on_code_blocks: true
+    # 是否为每个表格创建新的单元格
+    split_on_tables: true
+    # 是否为每个数学公式块创建新的单元格
+    split_on_math_blocks: true
+  # 元数据
+  metadata:
+    # 内核规格
+    kernelspec:
+      display_name: "Python 3"
+      language: "python"
+      name: "python3"
+    # 语言信息
+    language_info:
+      codemirror_mode:
+        name: "ipython"
+        version: 3
+      file_extension: ".py"
+      mimetype: "text/x-python"
+      name: "python"
+      nbconvert_exporter: "python"
+      pygments_lexer: "ipython3"
+      version: "3.8.10"
+
+# Markdown输出配置
+markdown:
+  # 是否使用拓展语法
+  use_extended_syntax: true
+  # 链接风格
+  link_style: "inline"  # 可选: inline, reference
+  # 图片格式
+  image_format: "![{alt}]({url})"
+  # 代码块风格
+  code_block_style: "fenced"  # 可选: fenced, indented
+  # 列表缩进
+  list_indent: 2

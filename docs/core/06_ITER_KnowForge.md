@@ -151,11 +151,11 @@ KnowForge项目将采用敏捷开发方法，分为5个主要迭代阶段，历�
    - Prompt工程优化
    - 异常处理与重试机制
 
-3. **文档综合处理（新增优先级功能）**
-   - `DocumentAnalyzer`：文档结构分析
-   - `ContentExtractor`：多类型内容提取
-   - `ContentProcessor`：专项内容处理
-   - `ContentIntegrator`：保持原始结构的内容整合
+3. **文档综合处理（已完成实现）** ✅
+   - ✅ `DocumentAnalyzer`：文档结构分析 - 已实现于`src/note_generator/document_analyzer.py`
+   - ✅ `ContentExtractor`：多类型内容提取 - 已实现于`src/note_generator/content_extractor.py`
+   - ✅ `ContentProcessor`：专项内容处理 - 已实现于`src/note_generator/content_processor.py`
+   - ✅ `ContentIntegrator`：保持原始结构的内容整合 - 已实现于`src/note_generator/content_integrator.py`
 
 4. **高级输出功能**
    - Jupyter Notebook (.ipynb) 输出
@@ -170,7 +170,7 @@ KnowForge项目将采用敏捷开发方法，分为5个主要迭代阶段，历�
 
 #### 里程碑：
 - 完整的记忆管理系统
-- 文档综合处理能力（v0.1.5-v0.1.7）
+- ✅ 文档综合处理能力（已在v0.1.5-v0.1.6完成）
 - 多格式输出支持
 - 全部输入类型处理支持
 

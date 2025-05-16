@@ -2,15 +2,89 @@
  * @Author: @ydzat
  * @Date: 2025-04-29 01:30:33
  * @LastEditors: @ydzat
- * @LastEditTime: 2025-05-16 23:45:00
- * @Description: 
+ * @LastEditTime: 2025-05-16 23:59:59
+ * @Description: 项目更新日志
 -->
 
 # Changelog
 
 This document records all major version updates and changes of the KnowForge project.
 
-## [0.1.6] - 2025-05-16
+## [0.1.7] - 2025-05-16 (已完成)
+
+### Output System Enhancement with Configuration and Offline Support
+
+#### Features Added
+- Implemented user configuration system for output customization
+  - Created unified configuration schema in `/resources/config/output_config.yaml`
+  - Added support for HTML, PDF, and Jupyter Notebook output customization
+  - Implemented theme system with multiple built-in themes (default, dark, light, minimal)
+  - Added comprehensive style configuration options for all output formats
+- Developed offline resource management system
+  - Created resource download script (`scripts/download_resources.py`)
+  - Added support for Bootstrap, MathJax, and Highlight.js offline use
+  - Implemented automatic CDN fallback when offline resources unavailable
+  - Added command-line options for custom theme downloading
+- Enhanced output generation with multi-engine support
+  - Improved PDF generation with multiple rendering engines (weasyprint, fpdf)
+  - Fixed HTML to plain text conversion with proper regex handling
+  - Added automatic engine fallback mechanism with graceful degradation
+  - Enhanced error handling and reporting in output generation
+- Developed theme preview and testing tools
+  - Enhanced `scripts/theme_preview.py` with theme comparison options
+  - Added proper locale support and resource detection
+  - Implemented offline/online mode auto-switching
+  - Added options for batch theme testing
+
+#### Technical Details
+- Fixed syntax errors and structural issues in output generation methods
+- Enhanced HTML template system with conditional resource loading
+- Improved error handling with multi-level try/except structures
+- Fixed regex patterns for HTML parsing and content extraction
+
+#### Documentation
+- Enhanced output enhancement progress documentation
+- Updated output configuration guide with offline resource information
+- Added usage instructions for theme preview and resource management tools
+- Created detailed configuration examples for different use cases
+
+## [0.1.6] - 2025-05-12 (已完成)
+
+### Document Processing System with Table and Formula Support
+
+#### Features Added
+- Completed document processing framework with full content type support
+  - Implemented integrated document processing pipeline
+  - Added specialized table and formula processing capabilities
+  - Enhanced content integration with structure preservation
+- Table processing functionality (已完成)
+  - Added table area detection and extraction
+  - Implemented multi-processor architecture (Camelot, Tabula, Custom)
+  - Added table structure normalization and enhancement
+  - Implemented table-to-markdown/HTML conversion
+  - Added automatic column standardization and empty cell handling
+- Formula processing functionality (已完成)
+  - Added formula detection in document with pattern matching
+  - Implemented LaTeX conversion with multiple engines
+  - Added formula type detection (inline vs. block)
+  - Integrated optional Mathpix API support for image-based formulas
+  - Added support for complex LaTeX expressions and mathematical notation
+- Content integration enhancements
+  - Added structure-preserving content integration
+  - Implemented Markdown and HTML output formats
+  - Enhanced position-based content ordering
+
+#### Technical Details
+- Designed modular processor architecture with configurable components
+- Implemented fallback mechanisms for robust processing
+- Added comprehensive demo scripts for testing features
+- Enhanced error handling and reporting system
+
+#### Documentation
+- Added detailed document processing architecture documentation
+- Created integration guides for table and formula processing
+- Updated test cases for all new components
+- Added comprehensive module documentation in docs/modules/table_formula_processing.md
 
 ### PDF Image Extraction and OCR Enhancement
 
