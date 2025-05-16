@@ -2,7 +2,7 @@
 
 [简体中文](README.md) | English
 
-![Version](https://img.shields.io/badge/version-0.1.6-blue)
+![Version](https://img.shields.io/badge/version-0.1.7-blue)
 ![License](https://img.shields.io/badge/license-GPL--3.0-green)
 ![Python](https://img.shields.io/badge/Python-3.11+-yellow)
 
@@ -21,21 +21,34 @@
 - **Multilingual Support**: Chinese and English interfaces
 - **Cross-platform Compatibility**: Support for Windows and Linux systems
 
+## Version Planning
+
+- **Current Version**: v0.1.7 (Output System Enhancement Completed)
+- **v1.0.0**: Final vision version with complete functionality (including Web interface)
+- **v2.0.0**: MoeAI-C system integration version
+
+## Development Roadmap
+
+- **v0.2.0** (Expected: June 2025): Advanced Memory Management & LLM Enhancement
+- **v0.3.0** (Expected: August 2025): Knowledge Graph & Cross-Document Relations
+- **v0.4.0** (Expected: October 2025): Learning Assistance & Intelligent Assessment
+- **v0.5.0-v1.0.0** (Expected: December 2025-March 2026): Web Interface & User Experience
+
 ## Development Progress
 
-Refer to the design document [06_ITER_KnowForge_EN.md](./docs/06_ITER_KnowForge_EN.md). Currently completed Iterations 2 (Core functionality implementation) and 3 (Logloom logging system integration), and currently working on Iteration 4 (Advanced features and optimization).
+Refer to the [KnowForge Roadmap Document](./docs/core/08_ROADMAP_KnowForge_EN.md). Currently completed version v0.1.7 (Output System Enhancement) and working on version v0.2.0 (Advanced Memory Management & LLM Enhancement).
 
 Latest milestones:
-- **May 16, 2025 (v0.1.6)**: Completed advanced PDF image extraction and OCR enhancement features, implemented multi-method redundant extraction strategy and LLM-enhanced OCR results with 100% extraction success rate. Also improved the advanced memory management system with access statistics updates and working memory optimization.
-- **May 14, 2025 (v0.1.5)**: Planned document comprehensive processing functionality, designed DocumentAnalyzer, ContentExtractor, and other core components, prepared for development of PDF content auto-detection capabilities.
-- **May 10, 2025 (v0.1.4)**: Implemented OCR-LLM-Knowledge base integration, developed EmbeddingManager and LLMCaller modules, significantly improved image text recognition quality.
+- **May 20, 2025 (v0.1.7)**: Completed output system enhancement with user configuration system, offline resource management, and multi-engine output support.
+- **May 16, 2025 (v0.1.6)**: Implemented advanced PDF image extraction and OCR enhancement features with multi-method redundant extraction strategy and improved memory management system.
+- **May 14, 2025 (v0.1.5)**: Developed document comprehensive processing functionality with DocumentAnalyzer and ContentExtractor components.
 - **May 8, 2025 (v0.1.3)**: Completely migrated LocaleManager to Logloom, optimized internationalization resource loading mechanism, implemented smart key name parsing functionality.
 - **May 5, 2025 (v0.1.2)**: Vector Memory Management optimization, fixed compatibility issues with ChromaDB API, enhanced hybrid retrieval strategies.
 - **May 2, 2025 (v0.1.1)**: Integration of the Logloom logging system, enhancing system reliability and internationalization support.
 
-**Next Steps:** Develop further integration of OCR with memory system (v0.1.7) to optimize OCR-related knowledge storage and retrieval mechanism, implement adaptive improvement based on historical OCR corrections, and develop an OCR result evaluation system. Also, continue developing document comprehensive processing functionality to enable automatic identification and processing of text, images, tables, and formulas in PDFs. Detailed design documentation is available at [13_DocumentProcessingDesign.md](./docs/others/13_DocumentProcessingDesign.md) and [13_AdvancedMemoryManager_Progress.md](./docs/modules/memory_management/13_AdvancedMemoryManager_Progress.md).
+**Next Steps:** We've now completed the v0.1.7 output enhancement features and are moving into the v0.2.0 development phase, focusing on advanced memory management and LLM module enhancement. Our updated roadmap includes clear milestones from the current version to v1.0.0, with Web interface development scheduled for completion before v1.0.0. Detailed design documentation is available at [13_DocumentProcessingDesign.md](./docs/others/13_DocumentProcessingDesign.md) and [13_AdvancedMemoryManager_Progress.md](./docs/modules/memory_management/13_AdvancedMemoryManager_Progress.md).
 
-For the complete development roadmap, please check [08_ROADMAP_KnowForge_EN.md](./docs/08_ROADMAP_KnowForge_EN.md).
+For the complete updated development roadmap with detailed milestones, please check [08_ROADMAP_KnowForge.md](./docs/core/08_ROADMAP_KnowForge.md).
 
 ## Installation Guide
 

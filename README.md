@@ -2,7 +2,7 @@
 
 简体中文 | [English](README_EN.md)
 
-![版本](https://img.shields.io/badge/版本-0.1.6-blue)
+![版本](https://img.shields.io/badge/版本-0.1.7-blue)
 ![许可证](https://img.shields.io/badge/许可证-GPL--3.0-green)
 ![Python](https://img.shields.io/badge/Python-3.11+-yellow)
 
@@ -20,15 +20,22 @@
 - **多语言支持**：支持中文和英文界面
 - **跨平台兼容**：支持Windows和Linux系统
 
-## 即将推出的功能
+## 版本规划
 
-- **文档综合处理**：自动识别PDF中的文本、图像、表格和公式，并应用适当的处理方法
-- **表格与公式专项处理**：提供表格数据提取和数学公式转LaTeX的功能
-- **内容整合与格式保留**：确保在最终笔记中保留原始文档结构和格式
+- **当前版本**：v0.1.7（输出系统增强已完成）
+- **v1.0.0**：完整功能版本（包括Web界面）
+- **v2.0.0**：MoeAI-C系统集成版本
+
+## 开发路线图
+
+- **v0.2.0**（预计：2025年6月）：高级记忆管理与LLM增强
+- **v0.3.0**（预计：2025年8月）：知识图谱与跨文档关系
+- **v0.4.0**（预计：2025年10月）：学习辅助与智能评估
+- **v0.5.0-v1.0.0**（预计：2025年12月-2026年3月）：Web界面与用户体验
 
 ## 开发进度
 
-参考设计文档[06_ITER_KnowForge.md](./docs/06_ITER_KnowForge.md)，当前已完成迭代2（核心功能实现）与迭代3（Logloom日志系统集成），正在进行迭代4（高级功能与优化）的开发。
+参考[KnowForge路线图文档](./docs/core/08_ROADMAP_KnowForge.md)，当前已完成v0.1.7版本（输出系统增强），正在进行v0.2.0版本（高级记忆管理与LLM增强）的开发。
 
 最新里程碑：
 - **2025年5月16日 (v0.1.6)**：完成高级PDF图像提取和OCR增强功能，实现多方法冗余提取策略和LLM增强OCR结果，提取成功率达到100%。同时完善高级记忆管理系统，实现记忆访问统计更新和工作记忆优化。
@@ -38,9 +45,9 @@
 - **2025年5月5日 (v0.1.2)**：向量记忆管理模块优化，修复了与ChromaDB API的兼容性问题，增强了混合检索策略。
 - **2025年5月2日 (v0.1.1)**：集成Logloom日志系统，提升了系统的可靠性和国际化支持。
 
-**下一步计划：** 开发OCR与记忆系统进一步融合功能（v0.1.7），优化OCR相关知识的记忆存取机制，实现基于历史OCR校正的自适应改进，并开发OCR结果评估系统。同时继续开发文档综合处理功能，使系统能够自动识别和处理PDF中的文本、图片、表格和公式。详细的设计方案见[13_DocumentProcessingDesign.md](./docs/others/13_DocumentProcessingDesign.md)和[13_AdvancedMemoryManager_Progress.md](./docs/modules/memory_management/13_AdvancedMemoryManager_Progress.md)。
+**下一步计划：** 现已完成v0.1.7输出功能增强，即将进入v0.2.0开发阶段，专注于高级记忆管理功能和LLM调用模块增强。根据更新后的路线图，我们已制定了明确的v1.0.0目标和详细的开发里程碑，确保在v1.0.0版本前完成Web界面开发。详细的设计方案见[13_DocumentProcessingDesign.md](./docs/others/13_DocumentProcessingDesign.md)和[13_AdvancedMemoryManager_Progress.md](./docs/modules/memory_management/13_AdvancedMemoryManager_Progress.md)。
 
-完整开发路线图请查看[08_ROADMAP_KnowForge.md](./docs/08_ROADMAP_KnowForge.md)。
+更新后的完整开发路线图请查看[08_ROADMAP_KnowForge.md](./docs/core/08_ROADMAP_KnowForge.md)，其中明确了从当前版本到v1.0.0的详细发展规划和里程碑。
 
 ## 安装指南
 

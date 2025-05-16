@@ -2,7 +2,7 @@
  * @Author: @ydzat
  * @Date: 2025-05-14 14:50:00
  * @LastEditors: @ydzat
- * @LastEditTime: 2025-05-14 14:50:00
+ * @LastEditTime: 2025-05-16 18:15:00
  * @Description: KnowForge Project Development Roadmap
 -->
 
@@ -10,7 +10,7 @@
 
 ## Current Development Stage Overview
 
-The KnowForge project is currently in the early development stage (0.1.4), with the basic architecture established and core functionalities gradually being improved. The major work completed so far includes:
+The KnowForge project has completed version 0.1.7, with the basic architecture established and core functionalities implemented. The major work completed so far includes:
 
 1. **Basic Architecture Setup** (0.1.0):
    - Core module structure design and implementation
@@ -43,22 +43,27 @@ The KnowForge project is currently in the early development stage (0.1.4), with 
    - Integration of knowledge base to enhance OCR results
    - Establishment of complete OCR-LLM-knowledge base processing pipeline
 
-2. **Logging System Upgrade** (0.1.1):
-   - Integration of Logloom logging system
-   - Implementation of internationalized log messages
-   - Addition of log file rotation functionality
+6. **Document Processing System** (0.1.5-0.1.6):
+   - Implementation of DocumentAnalyzer for content type identification
+   - Development of ContentExtractor for different content types
+   - Implementation of specialized table and formula processing
+   - Enhanced PDF image extraction and OCR capabilities
+   - Advanced content integration with structure preservation
 
-3. **Vector Memory Management Optimization** (0.1.2):
-   - ChromaDB API compatibility fixes
-   - Enhanced hybrid retrieval strategies
-   - Optimized threshold handling logic
-   - Improved keyword matching functionality
+7. **Output System Enhancement** (0.1.7):
+   - Implementation of user configuration system for output customization
+   - Development of offline resource management system
+   - Enhanced output generation with multi-engine support
+   - Development of theme preview and testing tools
 
-## Development Priorities
+## Development Roadmap (v0.1.7 to v1.0.0)
 
-### 1. Short-term Goals (0.1.4 - 0.1.6)
+### Version Planning
+- **Current Version**: v0.1.7 (Completed output system enhancement)
+- **v1.0.0**: Final vision version with complete functionality (including Web interface)
+- **v2.0.0**: MoeAI-C system integration version
 
-#### 1.1 Continue Improving OCR-LLM Integration
+### 1. Phase One: Advanced Memory Management & LLM Enhancement (v0.2.0)
 - **Optimize Current Implementation** (Current focus-0.1.4):
   - Optimize OCR image preprocessing parameters to improve recognition accuracy
   - Improve LLM prompt templates for different document types
@@ -94,128 +99,251 @@ The KnowForge project is currently in the early development stage (0.1.4), with 
   - Add dynamic adjustment of model parameters (temperature, etc.)
   - Add dynamic adjustment functionality for model parameters (e.g., temperature)
 
-#### 1.4 Content Integration and Output Format Extension
-- **Content Integration and Format Preservation** (Planned for 0.1.7-0.2.0):
-  - Implement ContentIntegrator functionality to integrate different content types
-  - Ensure preservation of original document structure in the final notes
-  - Optimize table and formula display in different output formats
-  - Strengthen contextual associations between different content types
+#### 1.1 Advanced Memory Management
+- **Intelligent Memory Management System**:
+  - Implement context-aware retrieval algorithms
+  - Develop memory classification and tagging system
+  - Design memory priority evaluation mechanism
+  - Implement automatic memory updates based on usage frequency
+  - Develop memory expiration and retirement strategies
+  - Implement automatic knowledge base content organization
 
-- **Enriched Output Capabilities**:
-  - Improve PDF generation (supporting table and formula rendering)
-  - Optimize Jupyter Notebook output format (supporting interactive tables and LaTeX formulas)
-  - Add HTML output option (supporting responsive tables and MathJax formulas)
-  - Support code block syntax highlighting and formatting
+#### 1.2 LLM Module Enhancement
+- **Advanced LLM Calling System**:
+  - Add support for more model options (DeepSeek Chat/Reasoner)
+  - Develop dynamic model selection mechanism based on task type
+  - Optimize prompt engineering with specialized templates for different document types
+  - Implement batch processing capability for improved multi-document efficiency
+  - Add intelligent parameter adjustment based on content complexity
 
-#### 1.5 Web Interface Basic Development
-- **Provide Simple Web Operation Interface**:
-  - Basic file upload and processing
-  - Note preview and download
-  - Progress display and status feedback
+#### 1.3 Vector Retrieval Performance Optimization
+- **Efficient Retrieval Engine**:
+  - Implement vector index optimization algorithms for large-scale corpus queries
+  - Develop caching strategies for frequent query scenarios
+  - Implement hierarchical retrieval architecture for complex semantic queries
+  - Add retrieval result ranking and filtering algorithms
+  - Optimize memory usage efficiency for larger memory banks
 
-#### 1.6 Test Coverage Enhancement
-- **Expand Test System**:
-  - Add mock tests for OCR and LLM calls
-  - Enhance integration test coverage
-  - Develop end-to-end test cases
+#### 1.4 Document Processing Enhancement
+- **Multimodal Document Processing**:
+  - Enhance image semantic analysis to identify chart types and structures
+  - Improve OCR processing pipeline for more languages and special characters
+  - Enhance table processing for complex table structure recognition
+  - Optimize formula processing for improved LaTeX conversion accuracy
+  - Implement cross-document reference recognition and processing
 
-### 2. Mid-term Goals (0.2.0 - 0.3.0)
+#### 1.5 Test Coverage Enhancement
+- **Comprehensive Test System**:
+  - Add unit tests for core modules
+  - Develop representative integration test scenarios
+  - Implement automated end-to-end test processes
+  - Increase test coverage to at least 75%
 
-#### 2.1 Advanced Memory Management Features
-- **Memory Library Management Enhancement**:
-  - Implement memory expiration management
-  - Add memory priority sorting
-  - Develop memory categorization tag system
-  - Support memory library query and browsing interface
+### 2. Phase Two: Knowledge Graph & Cross-Document Relations (v0.3.0)
 
-#### 2.2 User Interface Development
-- **Add Graphical Interface**:
-  - Develop Web-based user interface (e.g., using Flask or Streamlit)
-  - Design intuitive operation workflows
-  - Add real-time processing progress display
-  - Provide result preview functionality
+#### 2.1 Knowledge Graph Construction
+- **Knowledge Association Network**:
+  - Implement automatic concept and topic extraction
+  - Develop entity relationship recognition system
+  - Build multi-level knowledge network structure
+  - Implement knowledge graph visualization interface
+  - Support interactive knowledge exploration
 
-#### 2.3 Plugin System Design
-- **Implement Extensible Plugin Architecture**:
-  - Design unified plugin interfaces
-  - Support custom input source plugins
-  - Support custom output format plugins
-  - Implement model provider plugins (supporting more LLMs)
+#### 2.2 Cross-Document Semantic Relations
+- **Document Association Analysis**:
+  - Establish cross-document references and dependency relationships
+  - Implement similar content clustering and organization
+  - Develop topic evolution tracking functionality
+  - Support knowledge association recommendations
+  - Implement learning path generation
 
-#### 2.4 MoeAI-C System Integration
-- **Interface with MoeAI-C System**:
-  - Implement standard API interface
-  - Support remote calling
-  - Implement data synchronization mechanism
-  - Design secure authentication process
+#### 2.3 Advanced Output Enhancement
+- **Enhance Generated Content Quality**:
+  - Develop personalized note style customization
+  - Implement output adaptation for different learning styles
+  - Add automatic summary and key point highlighting
+  - Support intelligent chapter structure organization
+  - Implement automatic learning aid content generation
 
-### 3. Long-term Goals (0.3.0+)
+#### 2.4 Command Line Interface Enhancement
+- **Advanced CLI Features**:
+  - Implement interactive configuration and parameter management
+  - Add real-time processing progress visualization
+  - Develop result preview and quick editing functionality
+  - Support batch processing mode and task queue
 
-#### 3.1 Advanced Multimodal Capabilities
-- **Process More Complex Multimodal Inputs**:
-  - Deep image semantic understanding (chart analysis, visualization interpretation)
-  - Audio transcription and summarization (long-term plan only, not core functionality)
-  - Video content analysis (long-term plan only, not core functionality)
-  - Complex scientific document processing (including advanced mathematical formulas, professional diagrams)
+### 3. Phase Three: Learning Assistance & Intelligent Assessment (v0.4.0)
 
-#### 3.2 Collaborative Workflow
-- **Support Multi-user Collaboration**:
-  - Develop user permission management
-  - Implement shared memory library
-  - Support collaborative note editing
-  - Add annotation and feedback mechanism
+#### 3.1 Learning Assistance System
+- **Learning Enhancement Features**:
+  - Develop intelligent review plan generator
+  - Implement automatic exercise and quiz generation
+  - Add concept explanations and suggested reading recommendations
+  - Create knowledge point correlation diagram generator
+  - Support learning progress tracking and assessment
 
-#### 3.3 Offline Mode and Performance Optimization
-- **Enhance Offline Capabilities**:
-  - Support local small models
-  - Optimize vector database performance
-  - Implement incremental processing mechanism
-  - Reduce resource consumption
+#### 3.2 Advanced Multimodal Processing
+- **Complex Content Processing**:
+  - Implement professional scientific paper analysis and extraction
+  - Develop advanced mathematical formula understanding and conversion
+  - Support complex chart parsing and reconstruction
+  - Enhance code analysis and comment generation
+  - Implement multimedia content semantic understanding
 
-## Development Recommendations and Best Practices
+#### 3.3 Performance and Reliability Optimization
+- **System Robustness Enhancement**:
+  - Improve error recovery and fault tolerance mechanisms
+  - Optimize large-scale document processing performance
+  - Implement incremental processing and update functionality
+  - Add processing result caching mechanism
+  - Develop automatic tuning system
 
-### Code Organization and Style
-1. **Follow the established modular structure**, maintaining high cohesion and low coupling
-2. **Improve documentation**, adding detailed comments and design documents for each new feature
-3. **Maintain internationalization support**, manage all user-visible text with LocaleManager
-4. **Standardize error handling**, using custom exception classes (NoteGenError and subclasses)
+### 4. Phase Four: Web Interface & User Experience (v0.5.0 - v1.0.0)
 
-### Testing Strategy
-1. **Write unit tests**, ensuring test coverage for each new feature
-2. **Use mock objects**, simulating external dependencies (such as LLM API)
-3. **Run integration tests regularly**, verifying overall system functionality
-4. **Create regression tests for discovered bugs**, preventing recurrence
+#### 4.1 Web Interface Development
+- **Complete Web Application**:
+  - Implement user accounts and project management system
+  - Develop intuitive file upload and processing interface
+  - Create interactive note editor
+  - Implement real-time processing progress display
+  - Develop knowledge base visualization and management tools
+  - Add note sharing and collaboration features
 
-### Version Control and Release
-1. **Follow semantic versioning** (SemVer):
-   - Minor versions (0.1.x) for bug fixes and small feature enhancements
-   - Medium versions (0.x.0) for new functional modules
-   - Major versions (x.0.0) for significant architectural changes
-2. **Maintain CHANGELOG**, recording detailed changes for each version
-3. **Regular releases**, maintaining small update steps for easier testing and feedback
+#### 4.2 User Experience Optimization
+- **Interaction Experience Improvement**:
+  - Develop intuitive and responsive user interface
+  - Implement personalization settings and preference saving
+  - Add custom theme and style support
+  - Optimize mobile device access experience
+  - Implement multilingual interface
 
-## Next Step Action Plan
+#### 4.3 Deployment and Distribution Optimization
+- **Easy Deployment and Use**:
+  - Improve one-click deployment solution
+  - Develop Docker container support
+  - Implement automatic update mechanism
+  - Optimize resource usage efficiency
+  - Add complete user guide and tutorials
 
-### Immediate Tasks (Priority from high to low)
-1. **Implement Image OCR Functionality**
-   - Integrate easyocr library, supporting Chinese and English recognition
-   - Add image preprocessing functionality
-   - Write test cases
+#### 4.4 Integration and Extension
+- **System Integration Capabilities**:
+  - Design standard API interfaces
+  - Develop connectors for external systems
+  - Implement data import/export functionality
+  - Add batch processing API
+  - Support third-party authentication methods
 
-2. **Optimize LLM Call Logic**
-   - Enhance prompt engineering to improve generation quality
-   - Implement dynamic context window management
-   - Add more model option configurations
+### 5. MoeAI-C System Integration Goals (v2.0.0)
 
-3. **Improve PDF Output Functionality**
-   - Implement conversion from Markdown to PDF
-   - Add table of contents generation
-   - Support custom styling
+- **As a Note Generation Subsystem of MoeAI-C**:
+  - Develop standardized RESTful or GraphQL interfaces
+  - Implement efficient data exchange and processing workflow
+  - Develop shared authentication and permission management
+  - Support distributed computing and resource scheduling
+  - Implement complete service lifecycle management
 
-4. **Develop Basic Web Interface**
-   - Design simple user interaction flow
-   - Implement file upload and result display
-   - Add basic progress display functionality
+## Technical Debt and Continuous Optimization
+
+### Technical Debt Management Plan
+1. **Memory Module Refactoring**: Redesign memory_manager architecture to improve maintainability and extensibility
+2. **Vector Retrieval Performance Optimization**: Optimize retrieval algorithms and index structures for large-scale memory banks
+3. **Test Coverage Improvement**: Gradually increase test coverage to over 85%
+4. **Code Documentation Enhancement**: Establish complete API documentation system with examples and best practices
+5. **Internationalization System Optimization**: Resolve existing issues and further simplify internationalization interfaces
+6. **Performance Optimization**: Comprehensively optimize for large document processing and memory usage
+
+### Optimization Focus by Version
+- **v0.2.0**: Memory module refactoring and vector retrieval optimization
+- **v0.3.0**: Test coverage improvement and code documentation enhancement
+- **v0.4.0**: Performance optimization and system reliability improvement
+- **v0.5.0-v1.0.0**: User experience and deployment convenience optimization
+
+## Detailed Development Plan and Milestones
+
+### Version Milestones Overview
+- **v0.1.7**: Current version - Output System Enhancement (Completed)
+- **v0.2.0**: Advanced Memory Management & LLM Enhancement
+- **v0.3.0**: Knowledge Graph & Cross-Document Relations
+- **v0.4.0**: Learning Assistance & Intelligent Assessment
+- **v0.5.0-v1.0.0**: Web Interface & User Experience
+- **v2.0.0**: MoeAI-C System Integration
+
+### v0.2.0 Development Plan (Expected: June 2025)
+
+1. **Advanced Memory Management Subsystem**
+   - Develop new AdvancedMemoryManager class
+   - Implement context-aware retrieval algorithms
+   - Develop memory classification and tagging system
+   - Implement memory priority and temporal management
+   - Complete automatic memory update and optimization mechanisms
+   - Testing and benchmarking
+
+2. **LLM Calling Enhancement**
+   - Improve LLMCaller interface to support more models
+   - Implement model auto-selection and parameter optimization logic
+   - Develop efficient context management strategies
+   - Create specialized prompt template library
+   - Implement batch processing capability
+   - Complete comprehensive model capability testing
+
+3. **Vector Retrieval Optimization**
+   - Develop optimized vector index structures
+   - Implement efficient caching strategies
+   - Enhance semantic retrieval precision
+   - Complete large-scale performance testing
+
+### v0.3.0 Development Plan (Expected: August 2025)
+
+1. **Knowledge Graph Foundation System**
+   - Design knowledge graph data model
+   - Develop concept extraction and relationship recognition algorithms
+   - Implement graph construction and maintenance logic
+   - Create visualization interface
+   - Complete knowledge exploration functionality
+
+2. **Cross-Document Relation System**
+   - Develop document similarity analysis module
+   - Implement reference and dependency recognition
+   - Create topic clustering and evolution tracking functionality
+   - Develop knowledge recommendation system prototype
+
+3. **Advanced Output Extensions**
+   - Implement personalized note style system
+   - Develop learning style adaptation engine
+   - Enhance automatic summary and structure organization capabilities
+   - Complete auxiliary learning content generation module
+
+### v0.4.0 Development Plan (Expected: October 2025)
+
+1. **Learning Assistance System**
+   - Develop intelligent review plan generator
+   - Implement automatic exercise generation module
+   - Create learning progress tracking system
+   - Complete concept diagram generator
+
+2. **System Optimization and Reliability**
+   - Implement advanced error recovery mechanisms
+   - Optimize large document processing performance
+   - Develop incremental processing functionality
+   - Implement intelligent caching system
+
+### v0.5.0-v1.0.0 Development Plan (Expected: December 2025-March 2026)
+
+1. **Web Interface Development**
+   - Design user interface prototype
+   - Implement front-end framework selection and setup
+   - Develop user accounts and project management functionality
+   - Create intuitive upload and processing interface
+   - Implement real-time progress display
+   - Develop interactive note editor
+   - Complete knowledge base management tools
+   - Add sharing and collaboration features
+
+2. **Deployment and Distribution Optimization**
+   - Implement one-click deployment solution
+   - Develop Docker support
+   - Design automatic update mechanism
+   - Create complete user documentation and tutorials
 
 ### Technical Debt Management
 1. **Refactor the memory_manager module** to further optimize code organization
