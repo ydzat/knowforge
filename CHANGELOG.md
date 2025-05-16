@@ -10,6 +10,19 @@
 
 This document records all major version updates and changes of the KnowForge project.
 
+## 版本规划说明
+
+- **v0.1.x**: 初始开发阶段，基础功能实现（当前已完成v0.1.7）
+- **v0.2.0-v0.4.0**: 核心功能强化阶段
+- **v0.5.0-v1.0.0**: Web界面与用户体验完善阶段
+- **v2.0.0**: MoeAI-C系统集成版本
+
+**里程碑计划**:
+- **v0.2.0** (2025年6月): 高级记忆管理与LLM增强
+- **v0.3.0** (2025年8月): 知识图谱与跨文档关联
+- **v0.4.0** (2025年10月): 学习辅助功能与系统优化
+- **v1.0.0** (2026年3月): Web界面与完整用户体验
+
 ## [0.1.7] - 2025-05-16 (已完成)
 
 ### Output System Enhancement with Configuration and Offline Support
