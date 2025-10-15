@@ -1033,22 +1033,27 @@ class AdvancedMemoryManager:
         }
         
         return stats
-    
-    def export_memory(self, format: str = "json") -> str:
+        
+    def export_memory(self, file_path: Optional[str] = None, format: str = "json") -> str:
         """
         导出记忆数据
-        
+
         Args:
+            file_path: 导出的文件路径，如果为None则自动生成
             format: 导出格式，目前支持"json"
-            
+
         Returns:
             导出的数据或文件路径
         """
         if format.lower() == "json":
-            # 导出长期记忆
-            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-            export_path = f"workspace/memory_export_{timestamp}.json"
-            
+            # 确定导出路径
+            if file_path is None:
+                # 自动生成路径
+                timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+                export_path = f"workspace/memory_export_{timestamp}.json"
+            else:
+                export_path = file_path
+
             try:
                 # 导出长期记忆
                 ltm_path = self.long_term_memory.export_to_json(export_path)

@@ -164,3 +164,12 @@ class Embedder:
             return 0
             
         return np.dot(v1, v2) / (norm1 * norm2)
+        
+    # 兼容性方法 - 添加API别名
+    def get_embedding(self, text: str) -> List[float]:
+        """embed_single方法的别名，为了兼容性"""
+        return self.embed_single(text)
+        
+    def batch_get_embeddings(self, texts: List[str]) -> List[List[float]]:
+        """embed_texts方法的别名，为了兼容性"""
+        return self.embed_texts(texts)

@@ -1,0 +1,1008 @@
+'''
+ * @Author: @ydzat, GitHub Copilot
+ * @Date: 2025-05-17 11:15:00
+ * @LastEditors: @ydzat, GitHub Copilot
+ * @LastEditTime: 2025-05-17 11:15:00
+ * @Description: AdvancedMemoryManager集成VectorIndex和QueryCach        # 处理多条内容
+        elif isinstance(content, list):
+            # 为每个内容单独添加，因为我们的基础方法不支持直接传递列表
+            doc_ids = []
+            vectors = []
+            
+            # 分别添加每个知识项
+            for item in content:
+                if item:  # 跳过空内容
+                    try:
+                        # 使用我们的单一添加方法
+                        doc_id = super().add_knowledge(item, metadata)
+                        if doc_id:
+                            doc_ids.append(doc_id)
+                            
+                            # 获取单个向量
+                            if self.vector_index:
+                                vector = self.embedder.get_embedding(item)
+                                vectors.append((doc_id, vector))
+                    except Exception as e:
+                        self.logger.warning(f"添加单个知识项失败: {str(e)}")
+            
+            # 批量添加到向量索引
+            if vectors and self.vector_index:
+                try:
+                    batch_ids = [id for id, _ in vectors]
+                    batch_vectors = [vec for _, vec in vectors]
+                    added = self.vector_index.batch_add(batch_ids, batch_vectors)
+                    self.logger.debug(f"成功批量添加 {added} 条知识到向量索引")
+                except Exception as e:
+                    self.logger.warning(f"批量添加知识到向量索引失败: {str(e)}")
+            
+            return doc_idsmport time
+import tempfile
+import json
+import numpy as np
+from typing import List, Dict, Any, Tuple, Optional, Union
+
+# 导入现有组件
+from src.note_generator.advanced_memory_manager import AdvancedMemoryManager, AdvancedMemoryError
+from src.note_generator.vector_index import VectorIndex
+from src.note_generator.query_cache import QueryCache
+from src.note_generator.embedder import Embedder
+from src.utils.logger import setup_logger
+
+
+class AdvancedMemoryManagerWithIndex(AdvancedMemoryManager):
+    """
+    高级记忆管理系统集成方案
+    
+    扩展AdvancedMemoryManager，集成VectorIndex和QueryCache功能
+    """
+    
+    def __init__(
+        self, 
+        chroma_db_path: str,
+        embedder: Optional[Embedder] = None,
+        embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2",
+        collection_name: str = "knowforge_memory",
+        config: Dict[str, Any] = None
+    ):
+        """
+        初始化增强版高级记忆管理器
+        
+        Args:
+            chroma_db_path: ChromaDB数据库路径
+            embedder: 向量化模块
+            embedding_model: 向量化模型名称
+            collection_name: ChromaDB集合名称
+            config: 配置信息
+        """
+        # 保存基本参数供后续使用
+        self.chroma_db_path = chroma_db_path
+        self.embedder_instance = embedder
+        self.embedding_model_name = embedding_model
+        self.config = config or {}
+        self.memory_config = self.config.get("memory", {})
+        self.logger = setup_logger()
+        
+        # 初始化父类
+        super().__init__(
+            chroma_db_path=chroma_db_path,
+            embedder=embedder,
+            embedding_model=embedding_model,
+            collection_name=collection_name,
+            config=config
+        )
+        
+        # 确保必要的属性初始化
+        if not hasattr(self, 'embedder') or self.embedder is None:
+            if self.embedder_instance:
+                self.embedder = self.embedder_instance
+            else:
+                self.logger.info(f"创建默认Embedder，使用模型: {self.embedding_model_name}")
+                self.embedder = Embedder(self.embedding_model_name)
+                
+        # 初始化向量索引
+        self._init_vector_index()
+        
+        # 初始化查询缓存
+        self._init_query_cache()
+        
+    def _init_vector_index(self):
+        """初始化向量索引"""
+        vector_config = self.memory_config.get("vector_index", {})
+        
+        if vector_config.get("enabled", True):
+            # 创建向量索引
+            index_type = vector_config.get("type", "hybrid")
+            threshold = vector_config.get("threshold", 10000)
+            cache_size = vector_config.get("cache_size", 1000)
+            
+            # 确定索引路径
+            if hasattr(self, 'chroma_db_path'):
+                # 使用chroma数据库路径作为基础
+                index_dir = os.path.join(os.path.dirname(self.chroma_db_path), "vector_index")
+            else:
+                # 回退到当前工作目录的workspace文件夹
+                index_dir = os.path.join(os.getcwd(), "workspace", "vector_index")
+            os.makedirs(index_dir, exist_ok=True)
+            index_path = os.path.join(index_dir, "knowforge_vector_index.pkl")
+            
+            # 创建索引
+            self.vector_index = VectorIndex(
+                index_type=index_type,
+                vector_dim=self.embedder.vector_size,
+                max_elements=self.long_term_memory.max_memory_size,
+                index_path=index_path,
+                config={"hybrid_threshold": threshold, "cache_size": cache_size}
+            )
+            
+            # 同步现有数据到索引
+            self._sync_memory_to_index()
+            
+            self.logger.info(f"向量索引初始化完成，类型: {index_type}, 索引路径: {index_path}")
+        else:
+            self.vector_index = None
+            self.logger.info("向量索引功能已禁用")
+    
+    def _init_query_cache(self):
+        """初始化查询缓存"""
+        cache_config = self.memory_config.get("query_cache", {})
+        
+        if cache_config.get("enabled", True):
+            # 创建查询缓存
+            capacity = cache_config.get("capacity", 200)
+            ttl = cache_config.get("ttl", 3600)
+            similarity_threshold = cache_config.get("similarity_threshold", 0.9)
+            
+            self.query_cache = QueryCache(
+                capacity=capacity,
+                ttl=ttl,
+                similarity_threshold=similarity_threshold,
+                enable_stats=True
+            )
+            
+            self.logger.info(f"查询缓存初始化完成，容量: {capacity}, TTL: {ttl}秒, 相似度阈值: {similarity_threshold}")
+        else:
+            self.query_cache = None
+            self.logger.info("查询缓存功能已禁用")
+    
+    def _sync_memory_to_index(self):
+        """同步现有长期记忆数据到向量索引"""
+        if not self.vector_index:
+            return
+            
+        try:
+            # 获取所有现有记忆
+            try:
+                all_memories = self.long_term_memory.get_all_segments()
+            except Exception as e:
+                self.logger.warning(f"获取所有记忆失败，可能是新的空集合: {str(e)}")
+                return
+            
+            if not all_memories or not all_memories.get("ids"):
+                self.logger.info("长期记忆为空，无需同步到向量索引")
+                return
+                
+            ids = all_memories["ids"]
+            vectors = []
+            
+            # 获取向量
+            for doc in all_memories["documents"]:
+                try:
+                    vector = self.embedder.get_embedding(doc)
+                    vectors.append(vector)
+                except Exception as e:
+                    self.logger.warning(f"无法向量化文档: {doc[:30]}... 错误: {str(e)}")
+            
+            # 批量添加到索引
+            if ids和vectors:
+                count = self.vector_index.batch_add(ids, vectors)
+                self.logger.info(f"成功同步 {count} 条记忆到向量索引")
+                
+        except Exception as e:
+            self.logger.error(f"同步记忆到向量索引失败: {str(e)}")
+    
+    def add_knowledge(self, content: Union[str, List[str]], metadata: Dict[str, Any] = None) -> Union[str, List[str]]:
+        """
+        添加知识到记忆系统
+        
+        扩展原方法以支持批量添加和向量索引
+        
+        Args:
+            content: 知识内容(字符串或字符串列表)
+            metadata: 知识元数据
+            
+        Returns:
+            知识ID或ID列表
+        """
+        if not content:
+            self.logger.warning("尝试添加空内容知识")
+            return None
+            
+        # 处理单条内容
+        if isinstance(content, str):
+            # 使用父类的添加方法
+            doc_id = super().add_knowledge(content, metadata)
+            
+            # 同时添加到向量索引
+            if doc_id and self.vector_index:
+                try:
+                    # 获取文本向量
+                    vector = self.embedder.get_embedding(content)
+                    # 添加到向量索引
+                    self.vector_index.add(doc_id, vector)
+                    self.logger.debug(f"知识 {doc_id[:8]} 成功添加到向量索引")
+                except Exception as e:
+                    self.logger.warning(f"添加知识 {doc_id[:8]} 到向量索引失败: {str(e)}")
+            
+            return doc_id
+        
+        # 处理多条内容
+        elif isinstance(content, list):
+            # 使用父类的批量添加方法
+            doc_ids = super().add_knowledge(content, metadata)
+            
+            # 同时批量添加到向量索引
+            if doc_ids和self.vector_index:
+                try:
+                    # 批量获取向量
+                    vectors = self.embedder.batch_get_embeddings(content)
+                    # 批量添加到向量索引
+                    added = self.vector_index.batch_add(doc_ids, vectors)
+                    self.logger.debug(f"成功批量添加 {added} 条知识到向量索引")
+                except Exception as e:
+                    self.logger.warning(f"批量添加知识到向量索引失败: {str(e)}")
+            
+            return doc_ids
+        
+        else:
+            self.logger.warning(f"无法添加未知类型知识内容: {type(content)}")
+            return None
+    
+    def retrieve(self, query: str, context: List[str] = None, top_k: int = 5, threshold: float = None) -> List[Dict[str, Any]]:
+        """
+        从记忆系统中检索相关知识
+        
+        扩展原方法以支持向量索引和查询缓存
+        
+        Args:
+            query: 查询文本
+            context: 上下文信息列表
+            top_k: 返回结果数量
+            threshold: 相似度阈值
+            
+        Returns:
+            相关知识列表
+        """
+        if not query:
+            return []
+            
+        # 检查缓存
+        cache_key = None
+        if self.query_cache:
+            # 构造缓存键
+            cache_params = f"{top_k}_{threshold}_{context}"
+            cache_key = f"{query}|{cache_params}"
+            
+            # 查找缓存
+            cached_result = self.query_cache.get(query, vector=None, params=cache_params)
+            if cached_result:
+                self.logger.debug(f"查询缓存命中: {query[:20]}...")
+                return cached_result
+        
+        # 无缓存命中，执行检索
+        try:
+            # 获取查询向量
+            query_vector = self.embedder.get_embedding(query)
+            
+            # 如果启用了向量索引，先从向量索引中检索
+            if self.vector_index:
+                # 从向量索引中检索
+                index_results = self.vector_index.query(query_vector, top_k=top_k * 2)  # 检索更多结果后过滤
+                
+                if index_results:
+                    # 获取检索到的ID列表
+                    ids = [id for id, _ in index_results]
+                    scores = [score for _, score in index_results]
+                    
+                    # 从长期记忆获取完整结果
+                    detailed_results = self.long_term_memory.get_by_ids(ids)
+                    
+                    # 合并检索结果
+                    results = []
+                    for i, item_id in enumerate(ids):
+                        if i < len(detailed_results["documents"]):
+                            results.append({
+                                "id": item_id,
+                                "text": detailed_results["documents"][i],
+                                "metadata": detailed_results["metadatas"][i],
+                                "similarity": scores[i]
+                            })
+                    
+                    # 根据阈值过滤
+                    if threshold:
+                        results = [r for r in results if r["similarity"] >= threshold]
+                        
+                    # 更新访问记录
+                    for r in results:
+                        self._update_access_stats(r["id"])
+                    
+                    # 限制结果数量
+                    results = results[:top_k]
+                    
+                    # 缓存结果
+                    if self.query_cache和cache_key:
+                        self.query_cache.add(query, query_vector, results, params=cache_params)
+                        
+                    return results
+            
+            # 如果没有向量索引或检索失败，退回到原始检索方法
+            results = super().retrieve(query, context, top_k, threshold)
+            
+            # 缓存结果
+            if self.query_cache和cache_key:
+                self.query_cache.add(query, query_vector, results, params=cache_params)
+                
+            return results
+            
+        except Exception as e:
+            self.logger.error(f"检索过程出错: {str(e)}")
+            # 如果发生错误，退回到原始检索方法
+            return super().retrieve(query, context, top_k, threshold)
+    
+    def batch_retrieve(self, queries: List[str], context: List[str] = None, top_k: int = 5, threshold: float = None) -> List[List[Dict[str, Any]]]:
+        """
+        批量检索相关知识
+        
+        Args:
+            queries: 查询文本列表
+            context: 上下文信息列表
+            top_k: 每个查询返回的结果数量
+            threshold: 相似度阈值
+            
+        Returns:
+            查询结果列表的列表
+        """
+        results = []
+        
+        # 优化向量化过程，仅向量化不在缓存中的查询
+        queries_to_vectorize = []
+        query_indices = []
+        cached_results = []
+        
+        # 检查哪些查询可以从缓存获取结果
+        for i, query in enumerate(queries):
+            cache_params = f"{top_k}_{threshold}_{context}"
+            cached_result = self.query_cache.get(query, vector=None, params=cache_params) if self.query_cache else None
+            
+            if cached_result:
+                # 缓存命中
+                cached_results.append((i, cached_result))
+            else:
+                # 需要向量化的查询
+                queries_to_vectorize.append(query)
+                query_indices.append(i)
+        
+        # 如果有需要向量化的查询
+        if queries_to_vectorize:
+            # 批量向量化
+            query_vectors = self.embedder.batch_get_embeddings(queries_to_vectorize)
+            
+            # 如果启用了向量索引，批量检索
+            if self.vector_index和query_vectors:
+                batch_results = self.vector_index.batch_query(query_vectors, top_k=top_k * 2)
+                
+                # 处理每个查询的结果
+                for batch_idx, query_results in enumerate(batch_results):
+                    query_idx = query_indices[batch_idx]
+                    query = queries[query_idx]
+                    
+                    # 从向量索引结果中获取ID和分数
+                    ids = [id for id, _ in query_results]
+                    scores = [score for _, score in query_results]
+                    
+                    # 从长期记忆获取详细信息
+                    detailed_results = self.long_term_memory.get_by_ids(ids)
+                    
+                    # 合并结果
+                    query_result_list = []
+                    for i, item_id in enumerate(ids):
+                        if i < len(detailed_results["documents"]):
+                            query_result_list.append({
+                                "id": item_id,
+                                "text": detailed_results["documents"][i],
+                                "metadata": detailed_results["metadatas"][i],
+                                "similarity": scores[i]
+                            })
+                    
+                    # 根据阈值过滤
+                    if threshold:
+                        query_result_list = [r for r in query_result_list if r["similarity"] >= threshold]
+                        
+                    # 更新访问统计
+                    for r in query_result_list:
+                        self._update_access_stats(r["id"])
+                    
+                    # 限制结果数量
+                    query_result_list = query_result_list[:top_k]
+                    
+                    # 缓存结果
+                    if self.query_cache:
+                        cache_params = f"{top_k}_{threshold}_{context}"
+                        self.query_cache.add(query, query_vectors[batch_idx], query_result_list, params=cache_params)
+                    
+                    # 按原始顺序添加结果
+                    while len(results) <= query_idx:
+                        results.append([])
+                    results[query_idx] = query_result_list
+        
+        # 添加缓存命中的结果
+        for idx, cached_result in cached_results:
+            while len(results) <= idx:
+                results.append([])
+            results[idx] = cached_result
+        
+        # 确保所有查询都有结果
+        for i in range(len(queries)):
+            if i >= len(results):
+                results.append([])
+        
+        return results
+    
+    def clear(self):
+        """清空记忆系统"""
+        # 清空原系统
+        super().clear()
+        
+        # 清空向量索引
+        if self.vector_index:
+            self.vector_index = VectorIndex(
+                index_type=self.vector_index.index_type,
+                vector_dim=self.vector_index.vector_dim,
+                max_elements=self.vector_index.max_elements,
+                index_path=self.vector_index.index_path,
+                config={"hybrid_threshold": 10000, "cache_size": 1000}  # 默认配置
+            )
+        
+        # 清空查询缓存
+        if self.query_cache:
+            self.query_cache.clear()
+    
+    def get_system_status(self) -> Dict[str, Any]:
+        """
+        获取系统状态信息
+        
+        Returns:
+            系统状态信息
+        """
+        # 获取基础状态
+        status = super().get_system_status()
+        
+        # 添加向量索引信息
+        if self.vector_index:
+            status["vector_index"] = {
+                "type": self.vector_index.index_type,
+                "vector_count": len(self.vector_index.vectors),
+                "deleted_count": len(self.vector_index.deleted_indices),
+                "average_query_time": self.vector_index.total_query_time / max(1, self.vector_index.n_queries) if self.vector_index.n_queries > 0 else 0
+            }
+        
+        # 添加查询缓存信息
+        if self.query_cache:
+            cache_stats = self.query_cache.get_stats()
+            status["query_cache"] = {
+                "capacity": self.query_cache.capacity,
+                "size": len(self.query_cache.cache),
+                "hit_rate": cache_stats["cache_hits"] / max(1, cache_stats["total_queries"]) if cache_stats["total_queries"] > 0 else 0,
+                "stats": cache_stats
+            }
+        
+        return status
+
+    def retrieve_similar(
+        self, 
+        query: str, 
+        top_k: int = 5, 
+        threshold: float = 0.7,
+        context_texts: Optional[Union[str, List[str]]] = None,
+        include_embeddings: bool = False
+    ) -> List[Dict[str, Any]]:
+        """
+        检索与查询相似的知识片段
+        
+        使用向量索引和查询缓存提高性能
+        
+        Args:
+            query: 查询文本
+            top_k: 返回结果数量
+            threshold: 相似度阈值
+            context_texts: 上下文文本，用于上下文感知检索
+            include_embeddings: 是否包含向量表示
+            
+        Returns:
+            相似知识片段列表
+        """
+        if not query:
+            self.logger.warning("查询文本为空")
+            return []
+            
+        start_time = time.time()
+        
+        # 尝试从缓存获取结果
+        cache_hit = False
+        if self.query_cache:
+            try:
+                # 生成缓存参数
+                cache_params = f"{top_k}_{threshold}_{bool(context_texts)}"
+                
+                # 尝试从缓存获取
+                cached_result = self.query_cache.get(
+                    query, 
+                    params=cache_params
+                )
+                
+                if cached_result:
+                    self.logger.debug(f"检索命中缓存: {query[:30]}...")
+                    cache_hit = True
+                    results = cached_result
+            except Exception as e:
+                self.logger.warning(f"查询缓存获取失败: {str(e)}")
+        
+        # 如果缓存未命中，使用向量索引检索
+        if not cache_hit:
+            # 获取查询向量
+            try:
+                query_vector = self.embedder.get_embedding(query)
+            except Exception as e:
+                self.logger.error(f"向量化查询文本失败: {str(e)}")
+                # 如果向量化失败，回退到基础检索方法
+                return super().retrieve_similar(
+                    query, 
+                    top_k=top_k, 
+                    threshold=threshold,
+                    context_texts=context_texts,
+                    include_embeddings=include_embeddings
+                )
+            
+            # 如果使用向量索引
+            if self.vector_index:
+                try:
+                    # 从向量索引获取相似项
+                    vector_results = self.vector_index.search(
+                        query_vector, 
+                        top_k=max(top_k * 2, 10)  # 获取更多结果以便后续过滤
+                    )
+                    
+                    if not vector_results:
+                        self.logger.info(f"向量索引未找到相似项: {query[:30]}...")
+                        # 回退到基础检索
+                        results = super().retrieve_similar(
+                            query, 
+                            top_k=top_k, 
+                            threshold=threshold,
+                            context_texts=context_texts,
+                            include_embeddings=include_embeddings
+                        )
+                    else:
+                        # 获取ID和分数
+                        ids = [id for id, _ in vector_results]
+                        scores = [score for _, score in vector_results]
+                        
+                        # 从长期记忆获取详细内容
+                        detailed_results = self.long_term_memory.get_by_ids(ids)
+                        
+                        # 合并结果
+                        results = []
+                        for i, item_id in enumerate(ids):
+                            if i < len(detailed_results["documents"]):
+                                result = {
+                                    "id": item_id,
+                                    "text": detailed_results["documents"][i],
+                                    "metadata": detailed_results["metadatas"][i] if detailed_results["metadatas"] else {},
+                                    "similarity": scores[i]
+                                }
+                                
+                                # 添加向量表示
+                                if include_embeddings和i < len(detailed_results["embeddings"]):
+                                    result["embedding"] = detailed_results["embeddings"][i]
+                                    
+                                results.append(result)
+                        
+                        # 根据相似度阈值过滤
+                        results = [r for r in results if r["similarity"] >= threshold]
+                        
+                        # 更新访问统计
+                        for r in results:
+                            self._update_access_stats(r["id"])
+                        
+                        # 限制结果数量
+                        results = results[:top_k]
+                                                
+                except Exception as e:
+                    self.logger.error(f"向量索引检索失败: {str(e)}")
+                    # 回退到基础检索方法
+                    results = super().retrieve_similar(
+                        query, 
+                        top_k=top_k, 
+                        threshold=threshold,
+                        context_texts=context_texts,
+                        include_embeddings=include_embeddings
+                    )
+            else:
+                # 如果没有向量索引，使用基础检索方法
+                results = super().retrieve_similar(
+                    query, 
+                    top_k=top_k, 
+                    threshold=threshold,
+                    context_texts=context_texts,
+                    include_embeddings=include_embeddings
+                )
+            
+            # 添加到缓存
+            if self.query_cache和results:
+                try:
+                    cache_params = f"{top_k}_{threshold}_{bool(context_texts)}"
+                    self.query_cache.add(
+                        query, 
+                        query_vector, 
+                        results, 
+                        params=cache_params
+                    )
+                    self.logger.debug(f"添加查询结果到缓存: {query[:30]}...")
+                except Exception as e:
+                    self.logger.warning(f"添加结果到查询缓存失败: {str(e)}")
+        
+        # 如果需要考虑上下文，进一步调整结果
+        if context_texts和results:
+            results = self._apply_context_weighting(results, context_texts)
+        
+        end_time = time.time()
+        self.logger.debug(f"检索完成，耗时: {end_time - start_time:.4f}秒，找到 {len(results)} 条结果")
+        
+        return results
+
+    def _apply_context_weighting(
+        self, 
+        results: List[Dict[str, Any]], 
+        context_texts: Union[str, List[str]]
+    ) -> List[Dict[str, Any]]:
+        """
+        根据上下文调整结果排序
+        
+        Args:
+            results: 初始检索结果
+            context_texts: 上下文文本
+            
+        Returns:
+            调整后的结果
+        """
+        if not results or not context_texts:
+            return results
+            
+        try:
+            # 将上下文文本统一为字符串
+            if isinstance(context_texts, list):
+                context_text = " ".join([str(t) for t in context_texts if t])
+            else:
+                context_text = str(context_texts)
+                
+            if not context_text.strip():
+                return results
+            
+            # 获取上下文向量
+            context_vector = self.embedder.get_embedding(context_text)
+            
+            # 计算每个结果与上下文的相关性
+            for result in results:
+                # 获取文档向量
+                doc_vector = None
+                if "embedding" in result:
+                    doc_vector = result["embedding"]
+                else:
+                    try:
+                        doc_vector = self.embedder.get_embedding(result["text"])
+                    except Exception:
+                        continue
+                
+                if doc_vector:
+                    # 计算与上下文的相似度
+                    context_similarity = self._vector_similarity(doc_vector, context_vector)
+                    
+                    # 计算加权分数（原始相似度和上下文相似度的加权平均）
+                    original_sim = result["similarity"]
+                    context_weight = self.memory_config.get("context_weight", 0.3)
+                    weighted_score = (1 - context_weight) * original_sim + context_weight * context_similarity
+                    
+                    # 更新结果分数
+                    result["original_similarity"] = original_sim
+                    result["context_similarity"] = context_similarity
+                    result["similarity"] = weighted_score
+            
+            # 重新排序结果
+            results.sort(key=lambda x: x["similarity"], reverse=True)
+            
+            return results
+        except Exception as e:
+            self.logger.warning(f"应用上下文权重失败: {str(e)}")
+            return results
+        
+    def _vector_similarity(self, vec1: List[float], vec2: List[float]) -> float:
+        """
+        计算两个向量的余弦相似度
+        
+        Args:
+            vec1: 向量1
+            vec2: 向量2
+            
+        Returns:
+            余弦相似度 (0-1之间)
+        """
+        try:
+            # 转换为numpy数组
+            v1 = np.array(vec1)
+            v2 = np.array(vec2)
+            
+            # 计算点积
+            dot_product = np.dot(v1, v2)
+            
+            # 计算向量的范数
+            norm_v1 = np.linalg.norm(v1)
+            norm_v2 = np.linalg.norm(v2)
+            
+            # 避免除以零
+            if norm_v1 == 0 or norm_v2 == 0:
+                return 0.0
+                
+            # 计算余弦相似度
+            similarity = dot_product / (norm_v1 * norm_v2)
+            
+            # 确保结果在0-1之间
+            return max(0.0, min(1.0, float(similarity)))
+        except Exception as e:
+            self.logger.warning(f"计算向量相似度失败: {str(e)}")
+            return 0.0
+
+    def batch_retrieve_similar(
+        self, 
+        queries: List[str], 
+        top_k: int = 5, 
+        threshold: float = 0.7,
+        context: Optional[Union[str, List[str]]] = None,
+        include_embeddings: bool = False
+    ) -> List[List[Dict[str, Any]]]:
+        """
+        批量检索多个查询的相似知识片段
+        
+        Args:
+            queries: 查询文本列表
+            top_k: 每个查询返回结果数量
+            threshold: 相似度阈值
+            context: 共享上下文信息
+            include_embeddings: 是否包含向量表示
+            
+        Returns:
+            每个查询对应的相似知识片段列表
+        """
+        if not queries:
+            return []
+            
+        start_time = time.time()
+        
+        # 初始化结果列表
+        results = []
+        
+        # 检查是否可以使用向量索引和查询缓存
+        if self.vector_index:
+            # 存储缓存命中的结果
+            cached_results = []
+            cached_indices = set()
+            
+            # 需要向量化的查询和索引
+            query_texts = []
+            query_indices = []
+            
+            # 对每个查询尝试从缓存获取
+            for i, query in enumerate(queries):
+                if not query:  # 跳过空查询
+                    results.append([])
+                    continue
+                    
+                if self.query_cache:
+                    try:
+                        # 生成缓存参数
+                        cache_params = f"{top_k}_{threshold}_{context}"
+                        
+                        # 尝试从缓存获取
+                        cached_result = self.query_cache.get(query, params=cache_params)
+                        
+                        if cached_result:
+                            cached_results.append((i, cached_result))
+                            cached_indices.add(i)
+                            continue
+                    except Exception as e:
+                        self.logger.warning(f"查询缓存获取失败: {str(e)}")
+                
+                # 如果未命中缓存，添加到待向量化列表
+                query_texts.append(query)
+                query_indices.append(i)
+            
+            # 处理未命中缓存的查询
+            if query_texts:
+                try:
+                    # 批量向量化查询
+                    query_vectors = self.embedder.batch_get_embeddings(query_texts)
+                    
+                    # 批量搜索
+                    batch_results = self.vector_index.batch_search(
+                        query_vectors, 
+                        top_k=max(top_k * 2, 10)  # 获取更多结果以便后续过滤
+                    )
+                    
+                    # 处理每个查询的结果
+                    for batch_idx, query_results in enumerate(batch_results):
+                        query_idx = query_indices[batch_idx]
+                        query = queries[query_idx]
+                        
+                        # 从向量索引结果中获取ID和分数
+                        ids = [id for id, _ in query_results]
+                        scores = [score for _, score in query_results]
+                        
+                        # 从长期记忆获取详细信息
+                        detailed_results = self.long_term_memory.get_by_ids(ids)
+                        
+                        # 合并结果
+                        query_result_list = []
+                        for i, item_id in enumerate(ids):
+                            if i < len(detailed_results["documents"]):
+                                result = {
+                                    "id": item_id,
+                                    "text": detailed_results["documents"][i],
+                                    "metadata": detailed_results["metadatas"][i] if detailed_results["metadatas"] else {},
+                                    "similarity": scores[i]
+                                }
+                                
+                                # 添加向量表示
+                                if include_embeddings and i < len(detailed_results["embeddings"]):
+                                    result["embedding"] = detailed_results["embeddings"][i]
+                                    
+                                query_result_list.append(result)
+                        
+                        # 根据阈值过滤
+                        query_result_list = [r for r in query_result_list if r["similarity"] >= threshold]
+                        
+                        # 更新访问统计
+                        for r in query_result_list:
+                            self._update_access_stats(r["id"])
+                        
+                        # 限制结果数量
+                        query_result_list = query_result_list[:top_k]
+                        
+                        # 缓存结果
+                        if self.query_cache:
+                            try:
+                                cache_params = f"{top_k}_{threshold}_{context}"
+                                self.query_cache.add(
+                                    query, 
+                                    query_vectors[batch_idx], 
+                                    query_result_list, 
+                                    params=cache_params
+                                )
+                            except Exception as e:
+                                self.logger.warning(f"添加结果到查询缓存失败: {str(e)}")
+                        
+                        # 按原始顺序添加结果
+                        while len(results) <= query_idx:
+                            results.append([])
+                        results[query_idx] = query_result_list
+                        
+                except Exception as e:
+                    self.logger.error(f"批量检索失败: {str(e)}")
+            
+            # 添加缓存命中的结果
+            for idx, cached_result in cached_results:
+                while len(results) <= idx:
+                    results.append([])
+                results[idx] = cached_result
+        
+        # 如果向量索引不可用，回退到逐个查询
+        if not self.vector_index:
+            for query in queries:
+                if not query:
+                    results.append([])
+                    continue
+                    
+                # 使用单个查询方法
+                query_results = self.retrieve_similar(
+                    query, 
+                    top_k=top_k, 
+                    threshold=threshold,
+                    context_texts=context,
+                    include_embeddings=include_embeddings
+                )
+                results.append(query_results)
+        
+        # 确保所有查询都有结果
+        while len(results) < len(queries):
+            results.append([])
+        
+        end_time = time.time()
+        self.logger.debug(f"批量检索完成，查询数量: {len(queries)}，耗时: {end_time - start_time:.4f}秒")
+        
+        return results
+
+    def _update_access_stats(self, doc_id: str):
+        """
+        更新文档访问统计
+        
+        Args:
+            doc_id: 文档ID
+        """
+        try:
+            # 获取当前元数据
+            results = self.long_term_memory.get_by_ids([doc_id])
+            if not results or not results.get("metadatas") or not results["metadatas"][0]:
+                return
+                
+            metadata = results["metadatas"][0]
+            
+            # 更新访问计数和时间
+            access_count = metadata.get("access_count", 0)
+            metadata["access_count"] = access_count + 1
+            metadata["last_access"] = time.time()
+            
+            # 更新元数据
+            self.long_term_memory.update_metadata(doc_id, metadata)
+            
+        except Exception as e:
+            self.logger.warning(f"更新访问统计失败: {str(e)}")
+    
+    def remove_knowledge(self, doc_id: str) -> bool:
+        """
+        从记忆系统中移除知识
+        
+        Args:
+            doc_id: 文档ID
+            
+        Returns:
+            是否成功移除
+        """
+        # 从基础记忆系统移除
+        removed = super().remove_knowledge(doc_id)
+        
+        # 如果基础系统成功移除且向量索引存在，同时从向量索引移除
+        if removed and self.vector_index:
+            try:
+                self.vector_index.remove(doc_id)
+                self.logger.debug(f"从向量索引移除知识: {doc_id[:8]}")
+            except Exception as e:
+                self.logger.warning(f"从向量索引移除知识失败: {doc_id[:8]}, 错误: {str(e)}")
+        
+        return removed
+    
+    def update_knowledge(self, doc_id: str, new_content: str, metadata: Dict[str, Any] = None) -> bool:
+        """
+        更新知识内容
+        
+        Args:
+            doc_id: 文档ID
+            new_content: 新内容
+            metadata: 元数据
+            
+        Returns:
+            是否成功更新
+        """
+        # 更新基础记忆系统
+        updated = super().update_knowledge(doc_id, new_content, metadata)
+        
+        # 如果基础系统成功更新且向量索引存在，同时更新向量索引
+        if updated and self.vector_index:
+            try:
+                # 获取新内容的向量
+                vector = self.embedder.get_embedding(new_content)
+                # 更新向量索引
+                self.vector_index.update(doc_id, vector)
+                self.logger.debug(f"更新向量索引中的知识: {doc_id[:8]}")
+            except Exception as e:
+                self.logger.warning(f"更新向量索引中的知识失败: {doc_id[:8]}, 错误: {str(e)}")
+        
+        return updated
+
+__all__ = ["AdvancedMemoryManagerWithIndex"]

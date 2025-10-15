@@ -1158,3 +1158,114 @@ class MemoryManager:
         except Exception as e:
             self.logger.error(f"更新记忆项访问统计失败: {str(e)}")
             raise MemoryError(f"更新记忆项访问统计失败: {str(e)}")
+
+    def get_all_segments(self, include_embeddings: bool = False) -> Dict[str, Any]:
+        """
+        获取所有记忆片段
+        
+        Args:
+            include_embeddings: 是否包含向量表示
+            
+        Returns:
+            所有记忆片段数据
+        """
+        try:
+            # 确定包含哪些内容
+            includes = ["documents", "metadatas"]
+            if include_embeddings:
+                includes.append("embeddings")
+                
+            # 直接从集合获取所有条目
+            results = self.collection.get(
+                include=includes
+            )
+            
+            return results
+        except Exception as e:
+            self.logger.error(f"获取所有记忆片段失败: {str(e)}")
+            # 返回空结构而不是引发异常
+            return {"ids": [], "documents": [], "metadatas": [], "embeddings": [] if include_embeddings else None}
+    
+    def get_by_ids(self, ids: Union[str, List[str]], include_embeddings: bool = False) -> Dict[str, Any]:
+        """
+        根据ID获取记忆片段
+        
+        Args:
+            ids: 记忆项ID或ID列表
+            include_embeddings: 是否包含向量表示
+            
+        Returns:
+            记忆片段数据
+        """
+        try:
+            # 确保ids是列表
+            id_list = ids if isinstance(ids, list) else [ids]
+            
+            # 确定包含哪些内容
+            includes = ["documents", "metadatas"]
+            if include_embeddings:
+                includes.append("embeddings")
+                
+            # 获取记忆片段
+            results = self.collection.get(
+                ids=id_list,
+                include=includes
+            )
+            
+            return results
+        except Exception as e:
+            self.logger.error(f"根据ID获取记忆片段失败: {str(e)}")
+            # 返回空结构而不是引发异常
+            return {"ids": [], "documents": [], "metadatas": [], "embeddings": [] if include_embeddings else None}
+    
+    def update_metadata(self, ids: List[str], metadatas: List[Dict[str, Any]]) -> bool:
+        """
+        更新记忆项的元数据
+        
+        Args:
+            ids: 待更新记忆项的ID列表
+            metadatas: 对应的元数据列表
+            
+        Returns:
+            是否成功更新
+            
+        Raises:
+            MemoryError: 更新过程中出现异常
+        """
+        try:
+            self.collection.update(
+                ids=ids,
+                metadatas=metadatas
+            )
+            return True
+        except Exception as e:
+            self.logger.error(f"更新记忆项元数据失败: {str(e)}")
+            raise MemoryError(f"更新记忆项元数据失败: {str(e)}")
+    
+    def update_metadata(self, doc_id: str, metadata: Dict[str, Any]) -> bool:
+        """
+        更新指定ID记忆项的元数据
+        
+        Args:
+            doc_id: 记忆项ID
+            metadata: 更新后的元数据
+            
+        Returns:
+            更新是否成功
+        """
+        try:
+            # 确保元数据是字典类型
+            if not isinstance(metadata, dict):
+                self.logger.warning(f"元数据必须是字典类型，收到: {type(metadata)}")
+                return False
+                
+            # 更新元数据
+            self.collection.update(
+                ids=[doc_id],
+                metadatas=[metadata]
+            )
+            self.logger.debug(f"成功更新记忆项 {doc_id[:8]} 的元数据")
+            return True
+        except Exception as e:
+            self.logger.error(f"更新记忆项元数据失败: {str(e)}")
+            return False
