@@ -56,3 +56,4 @@ docs/others/
 # Local development
 .DS_Store
 Thumbs.db
+.git-rewrite.db
